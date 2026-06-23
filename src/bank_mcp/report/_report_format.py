@@ -44,21 +44,6 @@ def _format_date_long(date_str):
         return str(date_str) if date_str else ""
 
 
-def _updated_stamp(digest):
-    """Human-readable build/sync time (always current), e.g. 'Jun 20, 2026, 7:14 AM'.
-
-    Distinct from `as_of` (last transaction date) — this is when the data was last
-    refreshed, so a quiet day with no new transactions still reads as up to date.
-    """
-    raw = digest.get("generated_at")
-    try:
-        t = dt.datetime.fromisoformat(raw) if raw else dt.datetime.now()
-    except (ValueError, TypeError):
-        t = dt.datetime.now()
-    hour = t.hour % 12 or 12
-    return f"{t.strftime('%b')} {t.day}, {t.year}, {hour}:{t.minute:02d} {t.strftime('%p')}"
-
-
 def _format_date_short(date_str):
     """Format a date like 'Jun 17'."""
     try:

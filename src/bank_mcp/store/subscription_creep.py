@@ -236,7 +236,11 @@ def load_transactions(path):
 
 
 def money(x):
-    return f"${x:,.2f}"
+    # Delegate to the one rounding/formatting authority (bank_mcp.money) so this
+    # CLI helper can't drift from delivery.money / the digest. Local import keeps
+    # the spine module free of package-level import order concerns.
+    from bank_mcp import money as _money
+    return _money.fmt(x)
 
 
 def main():

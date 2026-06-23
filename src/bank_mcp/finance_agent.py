@@ -35,6 +35,7 @@ Usage:
 import argparse
 import datetime as dt
 import json
+import logging
 import os
 
 from bank_mcp.report import digest_templates as dtpl
@@ -51,6 +52,7 @@ from bank_mcp.report import delivery
 from bank_mcp.report import email_html
 
 money = delivery.money
+log = logging.getLogger(__name__)
 
 DEFAULT_FORECAST_DAYS = cf.DEFAULT_DAYS
 DEFAULT_BUFFER = cf.DEFAULT_BUFFER
@@ -116,8 +118,8 @@ def attach_balance_change(digest, txns, balance, snap_path=BALANCE_SNAP_PATH):
         data["last_date"] = today
         with open(snap_path, "w", encoding="utf-8") as f:
             json.dump(data, f)
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("could not write balance snapshot to %s: %s", snap_path, e)
     return digest
 
 

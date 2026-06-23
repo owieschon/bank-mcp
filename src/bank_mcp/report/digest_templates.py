@@ -24,8 +24,9 @@ from bank_mcp.report._report_sections import (
     _section_spending_breakdown,
 )
 from bank_mcp.report._report_format import (
-    _esc, _format_date_range, _format_date_long, _updated_stamp,
+    _esc, _format_date_range, _format_date_long,
 )
+from bank_mcp.report.delivery import _updated_stamp
 
 
 
