@@ -1,28 +1,27 @@
 #!/usr/bin/env python3
 """
-receipt_scanner.py — email receipt scanner for the bank.mcp suite.
+receipt_scanner.py — receipt extraction + reconciliation for the bank.mcp suite.
 
-Scans Gmail for transaction-related emails (purchase receipts, bank
-notifications, bill payment confirmations) and extracts structured data
-for reconciliation against the local ledger.
+This module has two halves with different jobs; keep them straight:
 
-DATA FLOW:
-  Gmail (search_threads + get_thread)
-    → parse email body (deterministic regex extraction)
-    → structured receipt records {date, amount, merchant, category, source}
-    → cross-reference against ledger_store.json
-    → flag unmatched receipts (things not yet in bank data)
-    → summary report
+1. EXTRACTION (email → receipt records). `identify_merchant`, `parse_receipt`,
+   `build_gmail_queries` turn a receipt email into a structured record
+   {date, amount, merchant, category, source}. Extraction is regex/pattern-first;
+   when the regex misses, `llm_matcher.llm_extract_receipt` is an optional fallback
+   that sends the email body to the model. This half is driven by an external Gmail
+   MCP integration (search_threads/get_thread) that is NOT in this repo; the functions
+   are a tested public API that integration calls. It is exercised by the test suite,
+   not by the in-repo digest path.
 
-Design rule:
-  - Raw email content NEVER enters a model prompt.
-  - All extraction is deterministic regex/pattern matching.
-  - The model is only used (optionally, via delivery.narrate) to narrate the
-    final compact summary dict.
-  - Gmail access via the connected Gmail MCP (search_threads, get_thread).
-  - Falls back gracefully if Gmail MCP is unavailable.
+2. RECONCILIATION (receipts × bank transactions). `reconcile` /
+   `reconciliation_to_summary` match receipt records against the canonical SQLite
+   store and flag discrepancies and not-yet-seen charges. This is the LIVE half: the
+   daily digest (finance_agent) calls it.
 
-Runs as part of the daily digest (sync.py) or on-demand.
+Privacy boundary (consistent with docs/ARCHITECTURE.md): receipt EMAIL text may reach
+the model during extraction (it is the thing being parsed); BANK TRANSACTION rows
+never do — reconciliation operates on structured records only. A `--no-voice` run does
+no model calls at all.
 """
 
 import datetime as dt
