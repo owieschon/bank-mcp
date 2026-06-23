@@ -50,7 +50,8 @@ The `transactions.amount` column holds **integer cents**, and the SQL analytics 
 those integers, so aggregation is exact — no floating-point drift across thousands of
 rows. One module, `money.py`, is the rounding/formatting authority: `to_cents()` rounds
 half-up via `Decimal(str(x))` (so a value rounds at the two decimals a human reads), and
-`fmt()` is the single display formatter (`delivery.money()` delegates to it).
+`fmt()` is the single display formatter — both `delivery.money()` and
+`subscription_creep.money()` delegate to it, so no view can drift from another.
 
 Where exactness lives, and why that's the right line: the **storage and aggregation
 layer** (the DB column and the SQL rollups) is exact integer cents — that is where an
