@@ -84,3 +84,8 @@ connection_owners.json
 
 # per-build balance snapshots (local state)
 balance_snapshots.json
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml

@@ -15,7 +15,7 @@ dependencies = []
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff", "mypy"]
+dev = ["pytest", "ruff", "mypy", "pytest-cov"]
 # Optional error tracking. The core stays zero-dependency; install this only if you
 # want Sentry, and set SENTRY_DSN. Absent it, bank_mcp._logging.init_sentry() no-ops.
 observability = ["sentry-sdk"]
@@ -37,6 +37,26 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["bank_mcp"]
+# Exclude entrypoints/transport that are integration- or network-level, not unit-
+# testable in isolation: the CLI dispatch shim, the interactive Plaid-Link OAuth
+# helper, and the static-site builder (it orchestrates network FX + file I/O).
+omit = [
+    "*/__main__.py",
+    "*/ingest/plaid_link.py",
+    "*/report/build_site.py",
+]
+
+[tool.coverage.report]
+# CLI main() bodies and __main__ blocks are exercised end-to-end (the demo, build_site),
+# not by unit tests; exclude them so the number reflects the testable core logic.
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "def main\\(",
+    "raise NotImplementedError",
+]
 
 [tool.ruff]
 line-length = 100
