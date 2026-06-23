@@ -67,8 +67,9 @@ receipt extraction).
 
 **`report/` — rendering and serving.**
 `delivery` holds the delivery primitives (`money()` / `fmt_date()` / `send_email()` /
-`call_haiku()` / `narrate()`). `digest_templates` (+ `_report_styles`, `_report_format`)
-renders the report HTML; `email_html` renders the email HTML. `build_site` assembles a
+`call_haiku()` / `narrate()`). `digest_templates` assembles the report page from
+`_report_sections` (per-section builders) using `_report_styles` (CSS/SVG) and
+`_report_format` (date/money helpers); `email_html` renders the email HTML. `build_site` assembles a
 self-contained static `./site` (landing page + report + assets) for an auth-gated
 Vercel deploy.
 

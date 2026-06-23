@@ -17,8 +17,8 @@ It runs on the **Python standard library only — zero runtime dependencies.**
 
 > Status: a personal project, cleaned up as a work sample. All data in the repo is
 > synthetic (`examples/`, `src/bank_mcp/demo.py`); there is no real financial data
-> here. 324 tests pass (74% coverage of the testable core); `ruff` and `mypy` are clean;
-> CI runs lint + types + tests on Python 3.10–3.12.
+> here. 332 tests pass (74% coverage of the testable core); `ruff` and `mypy` are clean;
+> CI runs lint + types + tests on Python 3.10–3.13.
 
 ## What it produces
 
@@ -60,7 +60,7 @@ GTM-infrastructure work:
   against a Python recompute.
 - **Judgment about LLMs** — deterministic, tested math with the model confined to the
   edges (narrate/match/extract), plus an opt-in trace of every model call.
-- **Observability, tests, types** — structured logging, 324 tests, mypy, green CI.
+- **Observability, tests, types** — structured logging, 332 tests, mypy, green CI.
 
 ## Shape of the system
 
@@ -89,12 +89,17 @@ src/bank_mcp/
   ingest/    safehttp · plaid_bridge · plaid_link · sync
   store/     db (SQLite) · subscription_creep (field/cadence accessors) ·
              obligation_registry · merchant_categorizer ·
-             queries.sql + analytics (SQL reporting read-models)
+             analytics + queries.sql (SQL reporting read-models)
   engines/   cashflow_forecaster · budget_scorer · fee_fraud_scan ·
              recurring · receipt_scanner · dispute_agent · llm_matcher
-  report/    delivery · digest_templates · build_site · web/
+  report/    delivery · digest_templates · _report_sections · _report_styles ·
+             _report_format · email_html · build_site · web/
   finance_agent.py   # orchestrator: reconcile → run each engine → one digest
+  money.py           # integer-cents money authority (rounding + formatting)
+  mcp_server.py      # MCP server (the `bank-mcp-server` console script)
   demo.py            # synthetic data + `python -m bank_mcp demo`
+  _logging.py        # structured logging + opt-in LLM-call trace + optional Sentry
+  __main__.py        # `python -m bank_mcp` / the `bank-mcp` CLI
 tests/        unit tests + a synthetic transaction fixture
 examples/     copy-these config templates (synthetic)
 ops/          launchd plist + deploy scripts (author-local)
@@ -109,7 +114,7 @@ pip install -e ".[dev]"
 
 bank-mcp demo        # build + print a full digest from synthetic data
 bank-mcp analytics   # SQL reporting rollups (see src/bank_mcp/store/queries.sql)
-pytest -q               # 324 tests
+pytest -q               # 332 tests
 ruff check src tests    # lint
 mypy                    # type-check the package
 ```
