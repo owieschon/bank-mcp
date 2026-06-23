@@ -502,24 +502,35 @@ def _generate_refund_body(merchant, amount, date, expected_amount, reason,
     return plain, html
 
 
-def _wrap_refund_html(plain_text, merchant, amount, date, reason):
-    """Wrap plain text in a clean HTML email template."""
+def _wrap_email_html(plain_text, merchant, amount, date, *,
+                     title, accent, bg, font, line_height, subtitle):
+    """Shared HTML email wrapper: a colored header card (title + merchant/amount/date
+    + a subtitle line) above the letter body. The refund and dispute emails differ
+    only in font/colors/title/subtitle, so they both go through here."""
     paras = plain_text.split("\n\n")
     body_parts = "".join(
-        f'<p style="margin:0 0 12px 0;line-height:1.6;">{p.replace(chr(10), "<br>")}</p>'
+        f'<p style="margin:0 0 12px 0;line-height:{line_height};">{p.replace(chr(10), "<br>")}</p>'
         for p in paras if p.strip()
     )
-
     return (
-        f'<div style="font-family:{_FONT_SANS};max-width:600px;'
+        f'<div style="font-family:{font};max-width:600px;'
         f'margin:0 auto;color:#333333;">'
-        f'<div style="background:#f8f9fa;border-radius:8px;padding:16px;'
-        f'margin-bottom:16px;border-left:4px solid #0f3460;">'
-        f'<strong style="color:#0f3460;">Refund Request</strong><br>'
+        f'<div style="background:{bg};border-radius:8px;padding:16px;'
+        f'margin-bottom:16px;border-left:4px solid {accent};">'
+        f'<strong style="color:{accent};">{title}</strong><br>'
         f'<span style="color:#666;font-size:14px;">'
         f'{merchant} &middot; ${amount:.2f} &middot; {date}<br>'
-        f'Reason: {reason}</span></div>'
+        f'{subtitle}</span></div>'
         f'<div style="font-size:15px;">{body_parts}</div></div>'
+    )
+
+
+def _wrap_refund_html(plain_text, merchant, amount, date, reason):
+    """Wrap a refund request in the clean sans-serif email template."""
+    return _wrap_email_html(
+        plain_text, merchant, amount, date,
+        title="Refund Request", accent="#0f3460", bg="#f8f9fa",
+        font=_FONT_SANS, line_height="1.6", subtitle=f"Reason: {reason}",
     )
 
 
@@ -582,30 +593,17 @@ def _generate_bank_dispute_letter(merchant, amount, date, reason, evidence):
         f"Sincerely,\n{ACCOUNT_HOLDER}"
     )
 
-    html = _wrap_dispute_html(plain, merchant, amount, date, reason)
+    html = _wrap_dispute_html(plain, merchant, amount, date)
     return plain, html
 
 
-def _wrap_dispute_html(plain_text, merchant, amount, date, reason):
-    """Wrap dispute letter in formal HTML."""
-    paras = plain_text.split("\n\n")
-    body_parts = "".join(
-        f'<p style="margin:0 0 12px 0;line-height:1.8;">'
-        f'{p.replace(chr(10), "<br>")}</p>'
-        for p in paras if p.strip()
-    )
-
-    return (
-        f'<div style="font-family:Georgia,\'Times New Roman\',serif;'
-        f'max-width:600px;margin:0 auto;color:#333333;">'
-        f'<div style="background:#fff3cd;border-radius:8px;padding:16px;'
-        f'margin-bottom:16px;border-left:4px solid #e94560;">'
-        f'<strong style="color:#e94560;">Bank Dispute Letter</strong><br>'
-        f'<span style="color:#666;font-size:14px;">'
-        f'{merchant} &middot; ${amount:.2f} &middot; {date}<br>'
-        f'Fill in [ACCOUNT_NUMBER] and [BANK_NAME] before sending'
-        f'</span></div>'
-        f'<div style="font-size:15px;">{body_parts}</div></div>'
+def _wrap_dispute_html(plain_text, merchant, amount, date):
+    """Wrap the bank-dispute letter in the formal serif email template."""
+    return _wrap_email_html(
+        plain_text, merchant, amount, date,
+        title="Bank Dispute Letter", accent="#e94560", bg="#fff3cd",
+        font="Georgia,'Times New Roman',serif", line_height="1.8",
+        subtitle="Fill in [ACCOUNT_NUMBER] and [BANK_NAME] before sending",
     )
 
 
@@ -739,6 +737,21 @@ def build_bank_dispute_draft(finding, *, bank_email=None, api_key=None,
 
 # ========================= PIPELINE INTEGRATION =========================
 
+def _record_finding(drafts, new_disputes, *, auto_draft, finding,
+                    draft_builder, builder_kwargs, create_kwargs, disputes_path):
+    """Shared tail for each finding loop: build an email draft (when ``auto_draft``)
+    or create a tracked dispute, recording the resulting dispute_id either way. The
+    three source loops differ in how they build ``finding`` and the dispute fields,
+    but the draft-vs-create decision is identical and lives here once."""
+    if auto_draft:
+        draft = draft_builder(finding, disputes_path=disputes_path, **builder_kwargs)
+        drafts.append(draft)
+        new_disputes.append(draft["dispute_id"])
+    else:
+        dispute = create_dispute(path=disputes_path, **create_kwargs)
+        new_disputes.append(dispute["dispute_id"])
+
+
 def process_findings(reconciliation=None, fee_fraud_summary=None,
                      transactions=None, *,
                      auto_draft=False,
@@ -787,25 +800,21 @@ def process_findings(reconciliation=None, fee_fraud_summary=None,
                 "message": disc.get("message", ""),
                 "type": "discrepancy",
             }
-            if auto_draft:
-                draft = build_refund_draft(
-                    finding, api_key=api_key,
-                    contacts_path=contacts_path,
-                    disputes_path=disputes_path)
-                drafts.append(draft)
-                new_disputes.append(draft["dispute_id"])
-            else:
-                dispute = create_dispute(
-                    dispute_type="refund_request",
-                    merchant=finding["merchant"],
-                    amount=round(abs(disc.get("abs_difference", 0)), 2),
-                    date=finding["date"],
-                    reason="amount_discrepancy",
-                    evidence={"receipt_amount": disc.get("receipt_amount"),
-                              "details": disc.get("message", "")},
-                    path=disputes_path,
-                )
-                new_disputes.append(dispute["dispute_id"])
+            _record_finding(
+                drafts, new_disputes, auto_draft=auto_draft, finding=finding,
+                draft_builder=build_refund_draft,
+                builder_kwargs={"api_key": api_key, "contacts_path": contacts_path},
+                create_kwargs={
+                    "dispute_type": "refund_request",
+                    "merchant": finding["merchant"],
+                    "amount": round(abs(disc.get("abs_difference", 0)), 2),
+                    "date": finding["date"],
+                    "reason": "amount_discrepancy",
+                    "evidence": {"receipt_amount": disc.get("receipt_amount"),
+                                 "details": disc.get("message", "")},
+                },
+                disputes_path=disputes_path,
+            )
 
     # --- Duplicates from fee_fraud -> refund requests ---
     if fee_fraud_summary:
@@ -823,25 +832,21 @@ def process_findings(reconciliation=None, fee_fraud_summary=None,
                     f"{' & '.join(dup.get('dates', []))}"),
                 "type": "duplicate",
             }
-            if auto_draft:
-                draft = build_refund_draft(
-                    finding, api_key=api_key,
-                    contacts_path=contacts_path,
-                    disputes_path=disputes_path)
-                drafts.append(draft)
-                new_disputes.append(draft["dispute_id"])
-            else:
-                dispute = create_dispute(
-                    dispute_type="refund_request",
-                    merchant=finding["merchant"],
-                    amount=round(finding["amount"], 2),
-                    date=finding["date"],
-                    reason="duplicate_charge",
-                    evidence={"duplicate_dates": dup.get("dates", []),
-                              "details": finding["message"]},
-                    path=disputes_path,
-                )
-                new_disputes.append(dispute["dispute_id"])
+            _record_finding(
+                drafts, new_disputes, auto_draft=auto_draft, finding=finding,
+                draft_builder=build_refund_draft,
+                builder_kwargs={"api_key": api_key, "contacts_path": contacts_path},
+                create_kwargs={
+                    "dispute_type": "refund_request",
+                    "merchant": finding["merchant"],
+                    "amount": round(finding["amount"], 2),
+                    "date": finding["date"],
+                    "reason": "duplicate_charge",
+                    "evidence": {"duplicate_dates": dup.get("dates", []),
+                                 "details": finding["message"]},
+                },
+                disputes_path=disputes_path,
+            )
 
     # --- Unverified charges over threshold -> bank disputes ---
     # Use reconciliation.unmatched_charges (source of truth) to avoid
@@ -864,23 +869,20 @@ def process_findings(reconciliation=None, fee_fraud_summary=None,
             "reason": "unauthorized_charge",
             "message": uv.get("message", ""),
         }
-        if auto_draft:
-            draft = build_bank_dispute_draft(
-                finding, bank_email=bank_email, api_key=api_key,
-                disputes_path=disputes_path)
-            drafts.append(draft)
-            new_disputes.append(draft["dispute_id"])
-        else:
-            dispute = create_dispute(
-                dispute_type="bank_dispute",
-                merchant=finding["merchant"],
-                amount=round(amt, 2),
-                date=finding["date"],
-                reason="unauthorized_charge",
-                evidence={"details": uv.get("message", "")},
-                path=disputes_path,
-            )
-            new_disputes.append(dispute["dispute_id"])
+        _record_finding(
+            drafts, new_disputes, auto_draft=auto_draft, finding=finding,
+            draft_builder=build_bank_dispute_draft,
+            builder_kwargs={"bank_email": bank_email, "api_key": api_key},
+            create_kwargs={
+                "dispute_type": "bank_dispute",
+                "merchant": finding["merchant"],
+                "amount": round(amt, 2),
+                "date": finding["date"],
+                "reason": "unauthorized_charge",
+                "evidence": {"details": uv.get("message", "")},
+            },
+            disputes_path=disputes_path,
+        )
 
     # --- Check for resolutions in bank transactions ---
     resolved = []
