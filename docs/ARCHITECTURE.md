@@ -66,8 +66,10 @@ rows. `llm_matcher` is the only engine that calls the model (merchant matching /
 receipt extraction).
 
 **`report/` — rendering and serving.**
-`delivery` holds the shared `money()` / `fmt_date()` / `send_email()` / `narrate()`
-helpers. `digest_templates` renders HTML. `build_site` assembles a self-contained
+`delivery` holds the delivery primitives (`money()` / `fmt_date()` / `send_email()` /
+`call_haiku()` / `narrate()`). `digest_templates` (+ `_report_styles`, `_report_format`)
+renders the report HTML; `email_html` renders the email HTML. `build_site` assembles the
+static site. `build_site` assembles a self-contained
 static `./site` (landing page + report + assets) for an auth-gated Vercel deploy.
 
 **`finance_agent.py` — the orchestrator.**

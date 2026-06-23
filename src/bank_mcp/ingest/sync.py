@@ -31,6 +31,7 @@ import sys
 
 from bank_mcp.ingest import plaid_bridge
 from bank_mcp.store import db
+from bank_mcp.report import email_html as email_render
 
 
 # ----------------------------- sync state -------------------------------------
@@ -786,7 +787,7 @@ def main():
                         body = (f"{headline}\n\n{full_report}{db_warn}\n\n---\n"
                                 f"Live report: {REPORT_URL}\n")
                         try:
-                            email_html = delivery.render_digest_html(digest)
+                            email_html = email_render.render_digest_html(digest)
                         except Exception as he:
                             email_html = None
                             log.warning("email HTML render failed (%s); sending plain", he)

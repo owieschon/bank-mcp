@@ -48,6 +48,7 @@ from bank_mcp.engines import recurring as rec
 from bank_mcp.engines import receipt_scanner as rs
 from bank_mcp.engines import dispute_agent as da
 from bank_mcp.report import delivery
+from bank_mcp.report import email_html
 
 money = delivery.money
 
@@ -989,7 +990,7 @@ def main():
     # Email: send compact version with link when pages URL available
     if a.email is not None:
         to = None if a.email == "__self__" else a.email
-        subj = delivery.digest_subject_line(digest)
+        subj = email_html.digest_subject_line(digest)
 
         delivery.send_email(to, subj, render(digest), html=report_html)
 
