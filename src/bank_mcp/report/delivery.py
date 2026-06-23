@@ -33,10 +33,12 @@ import json
 import os
 import smtplib
 import subprocess
+import time
 import urllib.error
 import urllib.request
 from bank_mcp.ingest import safehttp
 from bank_mcp import money as _money
+from bank_mcp import _logging
 import html
 
 
@@ -973,13 +975,21 @@ def call_haiku(system, user):
     # so no future edit can introduce a file://-scheme SSRF through urlopen.
     if not req.full_url.startswith("https://"):
         return None
+    start = time.monotonic()
     try:
         with safehttp.fetch(req, timeout=60) as r:
             data = json.loads(r.read())
-        return "".join(b.get("text", "") for b in data.get("content", [])).strip()
+        out = "".join(b.get("text", "") for b in data.get("content", [])).strip()
+        _logging.trace_llm("narrate", HAIKU, system, user, out, True,
+                           (time.monotonic() - start) * 1000)
+        return out
     except urllib.error.HTTPError as e:
+        _logging.trace_llm("narrate", HAIKU, system, user, None, False,
+                           (time.monotonic() - start) * 1000)
         return f"_(narration unavailable: HTTP {e.code})_"
     except Exception:
+        _logging.trace_llm("narrate", HAIKU, system, user, None, False,
+                           (time.monotonic() - start) * 1000)
         return "_(narration unavailable)_"
 
 

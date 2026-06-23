@@ -11,6 +11,7 @@ no framework, so a Vercel deploy spends ~no build minutes.
 Then deploy (interactive auth the first time):
     npx vercel deploy ./site --yes
 """
+import logging
 import argparse
 import datetime as dt
 import json
@@ -28,6 +29,9 @@ SITE = os.path.abspath("site")            # build output, written under the CWD
 # Fall back to the bundled example rules so a build runs on a clean clone.
 DEFAULT_RULES = os.path.join(HERE, "..", "data", "rules.demo.md")
 PPP_BR = 2.5  # World Bank PPP conversion factor for the example currency (LCU per intl $).
+
+
+log = logging.getLogger(__name__)
 
 
 def fetch_fx():
@@ -89,16 +93,18 @@ def _load_canonical_txns(json_path):
         txns = db.load_transactions_from_db(conn)
         conn.close()
         if txns:
-            print(f"[build] read {len(txns)} txns from canonical DB")
+            log.info("read %d txns from canonical DB", len(txns))
             return txns
-        print("[build] DB empty after seed; using JSON snapshot")
+        log.warning("DB empty after seed; using JSON snapshot")
     except Exception as e:
-        print(f"[build] DB read unavailable ({e}); falling back to JSON snapshot")
+        log.warning("DB read unavailable (%s); falling back to JSON snapshot", e)
     with open(json_path) as f:
         return json.load(f)
 
 
 def main():
+    from bank_mcp import _logging
+    _logging.configure()
     ap = argparse.ArgumentParser()
     ap.add_argument("--balance", type=float, default=None,
                     help="account balance for the forecast (default: live fetch)")
@@ -115,14 +121,14 @@ def main():
             from bank_mcp.ingest import plaid_bridge as pb
             b = pb.fetch_balance()
             balance = b.get("available") or b.get("current")
-            print(f"[build] live balance: ${balance:,.2f}")
+            log.info("live balance fetched")
         except Exception as e:
-            print(f"[build] live balance fetch failed ({e}); forecast unavailable")
+            log.warning("live balance fetch failed (%s); forecast unavailable", e)
 
     txns = _load_canonical_txns(os.path.abspath(args.txns))
 
     fx = fetch_fx()
-    print(f"[build] FX baked: US$1 = R${fx['rate']} (ppp {fx['ppp']}) · {fx['date']}")
+    log.info("FX baked: US$1 = R$%s (ppp %s) on %s", fx["rate"], fx["ppp"], fx["date"])
 
     # One unified live snapshot (weekly/monthly collapsed). Monthly mode builds
     # the full data (month-by-month history + category breakdown).
@@ -168,7 +174,7 @@ def main():
             ],
         }, f, indent=2)
 
-    print(f"[build] wrote {SITE}/ : index.html, weekly.html, monthly.html, assets/currency.js, vercel.json")
+    log.info("wrote %s/ (index.html, report/weekly/monthly.html, assets, vercel.json)", SITE)
 
 
 if __name__ == "__main__":

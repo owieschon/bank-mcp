@@ -22,6 +22,7 @@ interaction is in finance_agent (narration) and only when --voice is on.
 Raw transactions never enter a model prompt.
 """
 
+import logging
 import argparse
 import datetime as dt
 import json
@@ -38,6 +39,9 @@ SYNC_STATE_PATH = os.environ.get(
     "SYNC_STATE_PATH",
     os.path.expanduser("~/Downloads/sync_state.json"),
 )
+
+
+log = logging.getLogger(__name__)
 
 
 def load_sync_state(path=SYNC_STATE_PATH):
@@ -272,7 +276,7 @@ def sync_from_bank(snapshot_path=None, use_sync_api=True,
                 if stale_warnings:
                     result["stale_warnings"] = stale_warnings
                     for w in stale_warnings:
-                        print(f"[sync] WARNING: {w}", file=sys.stderr)
+                        log.warning("stale data: %s", w)
 
                 _c = db.connect()
                 result["store_size"] = db.count(_c)
@@ -381,8 +385,7 @@ def sync_connections(date_from=None, sync_state_path=SYNC_STATE_PATH):
         except Exception as e:
             r["source"] = "failed"
             r["error"] = str(e)
-            print(f"[sync] connection {connection_id} ({owner}) failed: {e}",
-                  file=sys.stderr)
+            log.error("connection %s (%s) failed: %s", connection_id, owner, e)
         r["store_size"] = db.count(conn)
         results.append(r)
     conn.close()
@@ -553,7 +556,7 @@ def run_analysis(store_path=None, balance=None,
         fa.attach_balance_change(digest, txns, balance)
         return digest
     except Exception as e:
-        print(f"  analysis failed: {e}", file=sys.stderr)
+        log.error("analysis failed: %s", e)
         return None
 
 
@@ -634,10 +637,9 @@ def _send_failure_email(error_summary, error_detail=None):
             f"Runs to date: {ss.get('runs', '?')}\n"
         )
         delivery.send_email(None, subj, body)
-        print("[sync] failure email sent", file=sys.stderr)
+        log.info("failure email sent")
     except Exception as mail_err:
-        print(f"[sync] could not send failure email: {mail_err}",
-              file=sys.stderr)
+        log.warning("could not send failure email: %s", mail_err)
 
 
 def resolve_balance(explicit=None):
@@ -653,16 +655,18 @@ def resolve_balance(explicit=None):
         if bal is None:
             bal = b.get("current")
         if bal is not None:
-            print(f"[balance] live: ${bal:,.2f} (available)")
+            log.info("live balance fetched")
             return bal
     except Exception as e:
-        print(f"[balance] live fetch failed ({e}); forecast may be unavailable")
+        log.warning("live balance fetch failed (%s); forecast may be unavailable", e)
     return None
 
 
 # --------------------------------- CLI ----------------------------------------
 
 def main():
+    from bank_mcp import _logging
+    _logging.configure()
     ap = argparse.ArgumentParser(
         description="Transaction sync + analysis pipeline.",
         epilog="Run manually or install the launchd plist for daily automation.",
@@ -706,13 +710,13 @@ def main():
 
     try:
         # Sync — all configured Plaid Items
-        print(f"[sync] starting at {dt.datetime.now().strftime('%H:%M:%S')}...")
+        log.info("sync starting")
         sync_results = sync_all_sources(snapshot_path=a.snapshot,
                                         use_sync_api=not a.reliable)
         sync_result = _aggregate_sync_results(sync_results)
 
         if sync_result["source"] == "failed":
-            print(f"[sync] FAILED: {sync_result['error']}")
+            log.error("sync failed: %s", sync_result["error"])
             if a.email is not None:
                 _send_failure_email(
                     sync_result.get("error", "sync returned source=failed"))
@@ -723,20 +727,17 @@ def main():
         # Per-source status lines
         for r in sync_results:
             name = r.get("item_name", "?")
-            print(f"[sync] {name} ({r.get('source', '?')}): "
-                  f"+{r.get('added', 0)} added, "
-                  f"~{r.get('modified', 0)} modified, "
-                  f"-{r.get('removed', 0)} removed")
-        print(f"[sync] total: "
-              f"+{sync_result['added']} added, "
-              f"~{sync_result['modified']} modified, "
-              f"-{sync_result['removed']} removed "
-              f"(store: {sync_result['store_size']} txns)")
+            log.info("%s (%s): +%d added, ~%d modified, -%d removed", name,
+                     r.get("source", "?"), r.get("added", 0), r.get("modified", 0),
+                     r.get("removed", 0))
+        log.info("total: +%d added, ~%d modified, -%d removed (store: %d txns)",
+                 sync_result["added"], sync_result["modified"], sync_result["removed"],
+                 sync_result["store_size"])
 
         # Analysis
         if not a.no_analyze:
             balance = resolve_balance(a.balance)   # live balance unless overridden
-            print(f"[analysis] running {mode} digest...")
+            log.info("running %s digest", mode)
             digest = run_analysis(
                 balance=balance,
                 mode=mode,
@@ -767,7 +768,7 @@ def main():
                         f.write(full_report + "\n")
 
                     print(f"\n{headline}")
-                    print(f"[saved {fname}]")
+                    log.info("saved %s", fname)
 
                     # Email
                     if a.email is not None:
@@ -788,15 +789,14 @@ def main():
                             email_html = delivery.render_digest_html(digest)
                         except Exception as he:
                             email_html = None
-                            print(f"[email] HTML render failed ({he}); sending plain")
+                            log.warning("email HTML render failed (%s); sending plain", he)
                         sent = delivery.send_email(to, subj, body, html=email_html)
-                        print(f"[email] {'sent' if sent else 'NOT sent'} "
-                              f"to {to or 'self'}")
+                        log.info("email %s to %s", "sent" if sent else "NOT sent", to or "self")
 
                 except Exception as e:
-                    print(f"[analysis] rendering failed: {e}")
+                    log.error("rendering failed: %s", e)
             else:
-                print("[analysis] skipped (empty store or analysis error)")
+                log.warning("analysis skipped (empty store or analysis error)")
 
         # Heartbeat: update last_success_ts on full pipeline completion
         ss = load_sync_state()
@@ -809,7 +809,7 @@ def main():
     except SystemExit:
         raise  # let sys.exit() propagate
     except Exception as exc:
-        print(f"[sync] UNHANDLED ERROR: {exc}", file=sys.stderr)
+        log.exception("unhandled error: %s", exc)
         import traceback
         traceback.print_exc(file=sys.stderr)
         if a.email is not None:

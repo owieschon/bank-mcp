@@ -21,6 +21,7 @@ lives in db.py and the analysis tools). Credentials via env/Keychain
 (PLAID_CLIENT_ID, PLAID_SECRET, BANK_MCP_URL) following the suite's pattern.
 """
 
+import logging
 import json
 import os
 import select
@@ -59,6 +60,9 @@ PLAID_ITEMS_PATH = os.environ.get(
 
 
 # ----------------------------- credential helpers -----------------------------
+
+log = logging.getLogger(__name__)
+
 
 def _keychain_get(service):
     """Read a secret from the macOS Keychain. Returns None if unavailable."""
@@ -691,6 +695,8 @@ def check_connection():
 # --------------------------------- CLI ----------------------------------------
 
 def main():
+    from bank_mcp import _logging
+    _logging.configure()
     import argparse
     ap = argparse.ArgumentParser(description="Plaid bridge — test connectivity and fetch.")
     ap.add_argument("--check", action="store_true", help="check which transports are available")
@@ -724,7 +730,7 @@ def main():
             if a.json:
                 print(json.dumps(result, indent=2, default=str))
         except BankMCPError as e:
-            print(f"Sync failed: {e}")
+            log.error("sync failed: %s", e)
             raise SystemExit(1)
         return
 
@@ -735,7 +741,7 @@ def main():
             if a.json:
                 print(json.dumps(txns[:5], indent=2, default=str))
         except BankMCPError as e:
-            print(f"Fetch failed: {e}")
+            log.error("fetch failed: %s", e)
             raise SystemExit(1)
         return
 

@@ -13,6 +13,7 @@ usable with no real financial data. Point `build_digest`/analytics at a real SQL
 DB or transactions file via tool arguments.
 """
 import json
+import logging
 import sqlite3
 import sys
 from typing import Any, Optional
@@ -20,6 +21,7 @@ from typing import Any, Optional
 from bank_mcp import __version__, demo
 from bank_mcp.store import analytics, db
 
+log = logging.getLogger(__name__)
 PROTOCOL_VERSION = "2024-11-05"
 
 # ---------------------------------------------------------------- tool registry
@@ -123,10 +125,12 @@ def handle(request: dict) -> Optional[dict]:
         return _ok(rid, {"tools": TOOLS})
     if method == "tools/call":
         name = str(params.get("name") or "")
+        log.info("tool call: %s", name)
         try:
             text = _call_tool(name, params.get("arguments"))
             return _ok(rid, {"content": [{"type": "text", "text": text}], "isError": False})
         except Exception as e:  # surface tool errors as an MCP tool result, not a transport error
+            log.warning("tool %s failed: %s", name, e)
             return _ok(rid, {"content": [{"type": "text", "text": f"error: {e}"}], "isError": True})
     return _err(rid, -32601, f"method not found: {method}")
 
@@ -160,6 +164,9 @@ def serve_stdio(stdin: Any = None, stdout: Any = None) -> None:
 
 
 def main() -> None:
+    from bank_mcp import _logging
+    _logging.configure()  # logs to stderr; stdout is the JSON-RPC channel
+    log.info("bank-mcp MCP server ready (%d tools)", len(TOOLS))
     serve_stdio()
 
 

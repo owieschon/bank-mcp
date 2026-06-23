@@ -16,6 +16,7 @@ rows with owner='secondary'; engines filter by owner. No schema migration later.
 CLI:  python3 db.py transactions.json [--db finance.db]   # init + (idempotent) backfill
 """
 
+import logging
 import json
 import os
 import sqlite3
@@ -66,6 +67,9 @@ CREATE TABLE IF NOT EXISTS fx_rates (
   rate REAL NOT NULL, PRIMARY KEY (day, base, quote)
 );
 """
+
+
+log = logging.getLogger(__name__)
 
 
 def connect(path=DEFAULT_DB):
@@ -248,6 +252,8 @@ def export_snapshot(conn, path, owner=None):
 
 
 if __name__ == "__main__":
+    from bank_mcp import _logging
+    _logging.configure()
     argv = sys.argv[1:]
     db_path = DEFAULT_DB
     if "--db" in argv:
@@ -258,11 +264,11 @@ if __name__ == "__main__":
         print(json.dumps(integrity_report(conn), indent=2))
     elif argv and argv[0] == "--export":
         out = argv[1] if len(argv) > 1 else "transactions.export.json"
-        print(f"[db] exported {export_snapshot(conn, out)} txns -> {out}")
+        log.info("exported %d txns -> %s", export_snapshot(conn, out), out)
     elif argv:
         txns = sc.load_transactions(argv[0])
         n = upsert_transactions(conn, txns)["total"]
-        print(f"[db] upserted {n} txns into {db_path} · total rows now {count(conn)}")
+        log.info("upserted %d txns into %s (total rows now %d)", n, db_path, count(conn))
     else:
         raise SystemExit(
             "Usage: python3 db.py <transactions.json> | --integrity | --export <path> [--db finance.db]")

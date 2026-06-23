@@ -16,6 +16,9 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff", "mypy"]
+# Optional error tracking. The core stays zero-dependency; install this only if you
+# want Sentry, and set SENTRY_DSN. Absent it, bank_mcp._logging.init_sentry() no-ops.
+observability = ["sentry-sdk"]
 
 [project.scripts]
 bank-mcp = "bank_mcp.__main__:main"

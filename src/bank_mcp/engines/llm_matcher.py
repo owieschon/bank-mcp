@@ -36,12 +36,14 @@ ARCHITECTURE:
 import hashlib
 import json
 import os
+import time
 import urllib.error
 import urllib.request
 
 # Reuse delivery's credential pattern
 from bank_mcp.ingest import safehttp
 from bank_mcp.report import delivery
+from bank_mcp import _logging
 
 MODEL = "claude-3-5-haiku-latest"
 ANTHROPIC_URL = delivery.ANTHROPIC_URL
@@ -120,13 +122,19 @@ def _call_haiku(system, user, api_key=None):
     if not req.full_url.startswith("https://"):
         return None
 
+    start = time.monotonic()
     try:
         # Route through the SSRF guard (HTTPS-only, host-pinned, bounded timeout),
         # the same wrapper delivery.call_haiku uses — no raw urlopen anywhere.
         with safehttp.fetch(req, timeout=30) as r:
             data = json.loads(r.read())
-        return "".join(b.get("text", "") for b in data.get("content", [])).strip()
+        out = "".join(b.get("text", "") for b in data.get("content", [])).strip()
+        _logging.trace_llm("match/extract", MODEL, system, user, out, True,
+                           (time.monotonic() - start) * 1000)
+        return out
     except Exception:
+        _logging.trace_llm("match/extract", MODEL, system, user, None, False,
+                           (time.monotonic() - start) * 1000)
         return None
 
 
