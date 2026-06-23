@@ -126,6 +126,9 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
 - **Typed core + mypy gate.** `money.py`, `store/analytics.py`, and `mcp_server.py` are
   type-annotated and checked by `mypy` in CI — a typed core that expands outward (the
   engines are not yet typed).
+- **Split the oversized renderer.** `digest_templates.py` (2487 lines) → 1178, with the
+  static CSS/SVG in `_report_styles.py` and the date/money/severity formatters in
+  `_report_format.py`. Public render API unchanged.
 
 ## Verification
 
