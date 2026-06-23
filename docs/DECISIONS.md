@@ -103,6 +103,15 @@ chain or graph to trace, so adding them would be tracing a structure that doesn'
 by `trace_llm` above. Reaching for a heavy tracing framework here would be the
 over-engineering this project otherwise avoids.
 
+## Status glyphs in the digest are intentional UX
+
+The digest uses 🟢/🔴 for forecast status and ✅/⚠️/🔻 for rule scoring. These are in the
+human-facing report (email + terminal), the same way CI dashboards and GitHub checks use
+status icons — they aren't decoration sprinkled through the codebase. The engineering
+rigor lives in the data/LLM boundary and the tests, not in avoiding glyphs; removing them
+would make the report worse to read. (A reviewer who pattern-matches emoji to machine
+generation is welcome to flag it — hence this note.)
+
 ## Two detectors that intentionally differ (not duplication)
 
 `recurring.streams()` and `fee_fraud_scan._is_recurring()` both decide "is this a
