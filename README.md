@@ -17,7 +17,7 @@ It runs on the **Python standard library only — zero runtime dependencies.**
 
 > Status: a personal project, cleaned up as a work sample. All data in the repo is
 > synthetic (`examples/`, `src/finance_mcp/demo.py`); there is no real financial data
-> here. 296 tests pass; `ruff` is clean.
+> here. 303 tests pass; `ruff` and `mypy` are clean.
 
 ## Shape of the system
 
