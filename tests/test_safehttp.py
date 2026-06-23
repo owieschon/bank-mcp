@@ -29,6 +29,17 @@ class ValidationTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             safehttp.fetch("https://evil.example/x", allowed_hosts={"api.anthropic.com"})
 
+    def test_blocks_private_and_metadata_ip_literals(self):
+        # cloud metadata endpoint + private/loopback ranges must be refused
+        for url in ("https://169.254.169.254/latest/meta-data/",
+                    "https://10.0.0.5/x", "https://192.168.1.1/x", "https://127.0.0.1/x"):
+            with self.assertRaises(ValueError):
+                safehttp.fetch(url)
+
+    def test_allows_public_ip_literal(self):
+        with mock.patch.object(safehttp._OPENER, "open", return_value="ok"):
+            self.assertEqual(safehttp.fetch("https://1.1.1.1/"), "ok")
+
 
 class RetryTest(unittest.TestCase):
     def test_retries_transient_then_succeeds(self):

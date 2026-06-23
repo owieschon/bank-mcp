@@ -103,7 +103,7 @@ def make_handler(base, client, secret, link_token):
             try:
                 at = plaid(base, client, secret,
                            "/item/public_token/exchange", {"public_token": pt})["access_token"]
-                msg = "✅ ACCESS TOKEN (copy this into `npx @bank-mcp/server init`):\n\n" + at
+                msg = "ACCESS TOKEN (copy this into `npx @bank-mcp/server init`):\n\n" + at
                 print("\n" + "=" * 60 + "\n" + msg + "\n" + "=" * 60 + "\n")
             except Exception as e:
                 msg = "exchange failed: " + str(e)

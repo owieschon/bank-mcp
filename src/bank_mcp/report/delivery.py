@@ -254,7 +254,8 @@ def call_haiku(system, user):
         return None
     start = time.monotonic()
     try:
-        with safehttp.fetch(req, timeout=60, retries=2) as r:
+        with safehttp.fetch(req, timeout=60, retries=2,
+                            allowed_hosts={"api.anthropic.com"}) as r:
             data = json.loads(r.read())
         out = "".join(b.get("text", "") for b in data.get("content", [])).strip()
         _logging.trace_llm("narrate", HAIKU, system, user, out, True,

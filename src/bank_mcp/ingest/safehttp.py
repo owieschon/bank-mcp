@@ -1,15 +1,25 @@
-"""safehttp.py — SSRF-resistant outbound HTTP (public-service security posture).
+"""safehttp.py — hardened outbound HTTP (public-service security posture).
 
-Every outbound request in the suite goes through fetch(): it enforces HTTPS (the
-only exception is explicitly-opted-in localhost, for the local bank-mcp server),
-optionally pins an allowlist of hosts, always bounds the request with a timeout,
-and refuses redirects to non-HTTPS targets — so a future edit that lets a URL come
-from config/user input can't be turned into an SSRF or a plaintext downgrade.
+Every outbound request in the suite goes through fetch(). It:
+  - enforces HTTPS (the only exception is explicitly-opted-in localhost, for the
+    local bank-mcp server),
+  - optionally pins an allowlist of hosts (use this at sensitive call sites),
+  - blocks IP-literal targets in private/link-local/loopback/reserved ranges
+    (e.g. the cloud metadata endpoint 169.254.169.254),
+  - bounds every request with a timeout and refuses redirects to non-HTTPS targets,
+  - retries only transient failures with exponential backoff.
 
-Centralizing this replaces the per-call-site `startswith("https://")` guards that
-were duplicated (and missing) across the codebase.
+So a future edit that lets a URL come from config/user input can't trivially be
+turned into a plaintext downgrade or a request to an internal IP literal.
+
+Scope honestly: this is NOT a full DNS-rebinding defense — a hostname that *resolves*
+to a private address is not caught (the IP block applies to literals). For call sites
+that send credentials (the Anthropic API), `allowed_hosts` is pinned so the host can't
+drift regardless. Centralizing this replaces the per-call-site `startswith("https://")`
+guards that were duplicated (and missing) across the codebase.
 """
 
+import ipaddress
 import logging
 import ssl
 import time
@@ -58,6 +68,18 @@ def _validate(url, allow_localhost, allowed_hosts):
         raise ValueError(f"Refusing non-HTTPS outbound URL: {url}")
     if allowed_hosts is not None and p.hostname not in allowed_hosts:
         raise ValueError(f"Host not allowlisted ({p.hostname}): {url}")
+    # Block IP-literal targets in private/link-local/loopback/reserved ranges — e.g.
+    # the cloud metadata endpoint 169.254.169.254, or 10.x / 192.168.x. (This is not a
+    # DNS-rebinding defense: a hostname that resolves to a private IP is not caught;
+    # pin allowed_hosts at sensitive call sites for that.)
+    try:
+        ip = ipaddress.ip_address(p.hostname or "")
+    except ValueError:
+        ip = None
+    if ip is not None and (ip.is_private or ip.is_loopback or ip.is_link_local
+                           or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+        if not (is_local and str(ip) == "127.0.0.1"):
+            raise ValueError(f"Refusing request to non-public address: {p.hostname}")
 
 
 def fetch(url, *, data=None, headers=None, method=None, timeout=DEFAULT_TIMEOUT,

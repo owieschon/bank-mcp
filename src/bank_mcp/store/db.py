@@ -62,10 +62,6 @@ CREATE TABLE IF NOT EXISTS merchant_overrides (
   note           TEXT,
   updated_at     TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS fx_rates (
-  day TEXT NOT NULL, base TEXT NOT NULL, quote TEXT NOT NULL,
-  rate REAL NOT NULL, PRIMARY KEY (day, base, quote)
-);
 """
 
 

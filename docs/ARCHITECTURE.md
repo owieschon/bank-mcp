@@ -68,9 +68,9 @@ receipt extraction).
 **`report/` — rendering and serving.**
 `delivery` holds the delivery primitives (`money()` / `fmt_date()` / `send_email()` /
 `call_haiku()` / `narrate()`). `digest_templates` (+ `_report_styles`, `_report_format`)
-renders the report HTML; `email_html` renders the email HTML. `build_site` assembles the
-static site. `build_site` assembles a self-contained
-static `./site` (landing page + report + assets) for an auth-gated Vercel deploy.
+renders the report HTML; `email_html` renders the email HTML. `build_site` assembles a
+self-contained static `./site` (landing page + report + assets) for an auth-gated
+Vercel deploy.
 
 **`finance_agent.py` — the orchestrator.**
 `build_digest()` runs reconciliation first, then each engine core (imported, never
@@ -80,8 +80,8 @@ pass over the compact summary.
 ## The SQLite schema (shape)
 
 `transactions` carries **typed columns for querying** — `id` (PK), `account_id`,
-`owner`, `date`, `amount`, `direction`, `currency`, `merchant_name`, `category_raw`,
-`category_human`, `pending` — plus a **`raw` TEXT column holding the original
+`owner`, `date`, `amount` (integer cents), `direction`, `currency`, `merchant_name`,
+`category_raw`, `pending` — plus a **`raw` TEXT column holding the original
 transaction dict verbatim**. Indexed on `(owner, date)`.
 
 The typed columns are a query/filter index; the engines' actual data source is the

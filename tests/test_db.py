@@ -44,8 +44,7 @@ class TestDB(unittest.TestCase):
     def test_schema_tables_exist(self):
         names = {r[0] for r in self.conn.execute(
             "SELECT name FROM sqlite_master WHERE type='table'")}
-        self.assertTrue({"accounts", "transactions", "merchant_overrides",
-                         "fx_rates"}.issubset(names))
+        self.assertTrue({"accounts", "transactions", "merchant_overrides"}.issubset(names))
 
     def test_insert_and_count(self):
         n = db.upsert_transactions(self.conn, [
