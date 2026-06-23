@@ -67,7 +67,7 @@ class TestDB(unittest.TestCase):
         db.upsert_transactions(self.conn, [_txn("a", amount=99, date="2026-06-01")])
         self.assertEqual(db.count(self.conn), 1)
         row = self.conn.execute("SELECT amount FROM transactions WHERE id='a'").fetchone()
-        self.assertEqual(row["amount"], 99.0)
+        self.assertEqual(row["amount"], 9900)   # stored as integer cents
 
     def test_pending_then_posted_supersedes(self):
         # A pending charge, then its posted successor referencing the pending id.

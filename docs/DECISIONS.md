@@ -44,6 +44,21 @@ to (a) narrate a compact summary dict, (b) match merchant-name strings, and
 prompt.** A `--no-voice` run is fully correct at zero tokens and no network. This
 is the core design premise and the reason the analysis is auditable.
 
+## Money is stored and aggregated as integer cents
+
+The `transactions.amount` column holds **integer cents**, and the SQL analytics sum
+those integers, so aggregation is exact — no floating-point drift across thousands of
+rows. One module, `money.py`, is the rounding/formatting authority: `to_cents()` rounds
+half-up via `Decimal(str(x))` (so a value rounds at the two decimals a human reads), and
+`fmt()` is the single display formatter (`delivery.money()` delegates to it).
+
+Scope, stated plainly: the exact-cents guarantee is at the **storage and aggregation
+boundary**, which is where unbounded float accumulation would otherwise bite. The
+deterministic engines still compute the digest in float dollars rounded to the cent at
+each step (results are bounded to the cent and unit-tested). Converting every engine
+internal to `Decimal` end-to-end is a sensible follow-up, scoped out here to keep this
+change verifiable rather than half-done.
+
 ## Package layout mirrors the data flow
 
 `src/finance_mcp/` is grouped into `ingest/` → `store/` → `engines/` → `report/`,

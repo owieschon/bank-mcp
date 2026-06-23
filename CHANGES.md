@@ -107,8 +107,25 @@ every query result against an independent Python recomputation so the SQL and th
 engines can never silently diverge. The algorithmic forecasting/cadence math was left in
 Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
 
+## 9. Hardening pass (addressing a senior-engineer review)
+
+- **Money → exact integer cents.** The `transactions.amount` column and the SQL
+  analytics now use integer cents (exact aggregation, no float drift); `money.py` is the
+  single rounding (half-up) and formatting authority that `delivery.money()` delegates to.
+  Scope is honest: exact at the storage/aggregation boundary; engine digest math stays
+  float-rounded-to-cent (see `docs/DECISIONS.md`).
+- **Removed the dead email-render cluster** (`select_hero` / `_build_email_portion` /
+  `render_email_html`, ~420 LOC) — no live caller; `digest_templates.py` 2487 → 2065 lines.
+- **Added a real MCP server** (`finance-mcp-server`) — pure-stdlib JSON-RPC over stdio
+  exposing the engines as tools, so the "mcp" in the name is real and the zero-dependency
+  property is kept.
+- **Unified the transfer/P2P vocabulary** into `subscription_creep` (the engines kept
+  drifting copies); documented why the two recurring detectors intentionally differ.
+- **Trimmed speculative schema** — dropped the unused `envelopes` table and the
+  always-NULL `category_human` column.
+
 ## Verification
 
-`pip install -e ".[dev]"` succeeds; `ruff check src tests` is clean; **296 tests pass**
-via the installed package; `finance-mcp demo` and `build_site` both produce output from
-synthetic data. PII/secret sweeps over the whole tree come back clean.
+`pip install -e ".[dev]"` succeeds; `ruff check src tests` is clean; **303 tests pass**
+via the installed package; `finance-mcp demo`, `finance-mcp analytics`, and `build_site`
+all produce output from synthetic data. PII/secret sweeps over the whole tree come back clean.

@@ -23,6 +23,7 @@ import sys
 import datetime as dt
 
 from finance_mcp.store import subscription_creep as sc   # canonical accessors — store what engines compute
+from finance_mcp import money                            # exact integer-cents conversion
 
 DEFAULT_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "finance.db")
 
@@ -41,7 +42,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   account_id    TEXT NOT NULL,
   owner         TEXT NOT NULL,
   date          TEXT NOT NULL,
-  amount        REAL NOT NULL,
+  amount        INTEGER NOT NULL,         -- integer cents (exact; see money.py)
   direction     TEXT NOT NULL,
   currency      TEXT NOT NULL,
   merchant_name TEXT,
@@ -139,7 +140,7 @@ def upsert_transactions(conn, txns, ingested_at=None):
             t.get("accountId") or sc.raw(t).get("account_id"),
             _owner_of(t),
             d.isoformat() if d else "",
-            sc.amount_magnitude(t) or 0.0,
+            money.to_cents(sc.amount_magnitude(t) or 0),
             "debit" if sc.is_outflow(t) else "credit",
             _currency_of(t),
             t.get("merchantName") or sc.raw(t).get("merchant_name"),

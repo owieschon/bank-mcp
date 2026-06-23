@@ -36,6 +36,7 @@ import subprocess
 import urllib.error
 import urllib.request
 from finance_mcp.ingest import safehttp
+from finance_mcp import money as _money
 import html
 
 
@@ -96,10 +97,10 @@ ANTHROPIC_VERSION = "2023-06-01"
 # --------------------------------- formatting ---------------------------------
 
 def money(x):
-    """Canonical money formatter: $1,234.56 / -$1,234.56 (sign before the symbol)."""
-    if x < 0:
-        return f"-${abs(x):,.2f}"
-    return f"${x:,.2f}"
+    """Canonical money formatter: $1,234.56 / -$1,234.56 (sign before the symbol).
+
+    Delegates to the one rounding/formatting authority (finance_mcp.money)."""
+    return _money.fmt(x)
 
 
 # ----------------------------------- email ------------------------------------

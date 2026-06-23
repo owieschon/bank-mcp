@@ -7,9 +7,11 @@
 -- logic is algorithmic and lives in tested Python, not here.)
 --
 -- Schema notes the queries rely on (see db.py):
---   transactions(date TEXT 'YYYY-MM-DD', amount REAL  -- magnitude, always >= 0,
+--   transactions(date TEXT 'YYYY-MM-DD', amount INTEGER  -- magnitude in CENTS, >= 0,
 --                direction TEXT 'debit'|'credit', owner TEXT, merchant_name TEXT,
 --                description TEXT, category_raw TEXT)
+-- `amount` is stored as exact integer cents (sums stay exact); dollar columns below
+-- divide by 100.0 only at the final display step.
 -- `amount` is an unsigned magnitude; `direction` carries the sign, so spend is
 -- `direction='debit'` and income is `direction='credit'`.
 --
@@ -33,14 +35,15 @@ WITH monthly AS (
 )
 SELECT
     month,
-    ROUND(income, 2)                                                  AS income,
-    ROUND(spend, 2)                                                   AS spend,
-    ROUND(income - spend, 2)                                          AS net,
-    -- cumulative net to date: a classic running total
+    ROUND(income / 100.0, 2)                                          AS income,
+    ROUND(spend / 100.0, 2)                                           AS spend,
+    ROUND((income - spend) / 100.0, 2)                                AS net,
+    -- cumulative net to date: a classic running total (summed in exact cents)
     ROUND(SUM(income - spend) OVER (ORDER BY month
-              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW), 2)   AS running_net,
+              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) / 100.0, 2)
+                                                                      AS running_net,
     -- change in net vs the prior month (NULL for the first month)
-    ROUND((income - spend) - LAG(income - spend) OVER (ORDER BY month), 2)
+    ROUND(((income - spend) - LAG(income - spend) OVER (ORDER BY month)) / 100.0, 2)
                                                                       AS net_mom_change
 FROM monthly
 ORDER BY month;
@@ -61,8 +64,9 @@ WITH spend AS (
 )
 SELECT
     category,
-    ROUND(total, 2)                                                   AS total,
+    ROUND(total / 100.0, 2)                                           AS total,
     txns,
+    -- a ratio of cents equals the ratio of dollars, so no /100 needed here
     ROUND(100.0 * total / SUM(total) OVER (), 1)                      AS pct_of_spend
 FROM spend
 ORDER BY total DESC;
@@ -84,7 +88,7 @@ WITH by_merchant AS (
 SELECT
     RANK() OVER (ORDER BY total DESC)                                 AS rank,
     merchant,
-    ROUND(total, 2)                                                   AS total,
+    ROUND(total / 100.0, 2)                                           AS total,
     txns
 FROM by_merchant
 ORDER BY total DESC
