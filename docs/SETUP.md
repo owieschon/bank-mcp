@@ -31,7 +31,7 @@ and is also the source of the test fixture (`tests/fixtures/transactions.sample.
 ## Tests and lint
 
 ```bash
-pytest -q                   # 303 tests
+pytest -q                   # 324 tests
 ruff check src tests        # lint
 mypy                        # type-check the package (money/analytics/mcp_server fully annotated)
 ```

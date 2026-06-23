@@ -1,0 +1,12 @@
+# Keep GitHub's language stats reflecting AUTHORED code, not generated data.
+# (This does not hide anything — every file is still in the repo and browsable.)
+
+# Synthetic / generated data — not authored source.
+tests/fixtures/**      linguist-generated=true
+src/bank_mcp/data/**   linguist-generated=true
+
+# Copy-these config templates — documentation, not product code.
+examples/**            linguist-documentation=true
+
+# Make sure the SQL read-models are always counted as SQL.
+*.sql                  linguist-detectable=true

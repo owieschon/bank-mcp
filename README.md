@@ -17,7 +17,50 @@ It runs on the **Python standard library only — zero runtime dependencies.**
 
 > Status: a personal project, cleaned up as a work sample. All data in the repo is
 > synthetic (`examples/`, `src/bank_mcp/demo.py`); there is no real financial data
-> here. 303 tests pass; `ruff` and `mypy` are clean.
+> here. 324 tests pass (74% coverage of the testable core); `ruff` and `mypy` are clean;
+> CI runs lint + types + tests on Python 3.10–3.12.
+
+## What it produces
+
+`bank-mcp demo` runs the whole pipeline on synthetic data and prints a digest:
+
+```
+# bank.mcp — UNIFIED MONTHLY DIGEST
+## What matters
+- Clear: balance stays at or above the $100.00 buffer for the full 35-day horizon
+  (min $1,087.44 on May 6, 2026).
+- Fee/fraud: $49.99 recoverable this 30d.
+## Cash-flow forecast
+- Status: 🟢 CLEAR   ·   Start $1,200.00 → projected end $4,188.00 (35d, buffer $100.00)
+- Next income $800.00 from PAYROLL on May 7, 2026  ·  upcoming: May 26 Car Loan $285.00
+```
+
+`bank-mcp analytics` runs the SQL read-models over the store:
+
+```
+## Monthly cash flow
+month    income  spend    net      running_net  net_mom_change
+2026-01  4000.0  945.05   3054.95  3054.95      None
+2026-02  3200.0  681.31   2518.69  5573.64      -536.26
+```
+
+## What this demonstrates
+
+Beyond personal finance, the repo is meant to show transferable craft for data- and
+GTM-infrastructure work:
+
+- **Responsible data handling** — local-first, read-only posture; credentials via
+  env→Keychain (never committed); SSRF-guarded outbound HTTP; owner-scoped queries;
+  zero secrets/PII in the tree or git history. Synthetic data only.
+- **Integration craft** — a pluggable bank transport (bank-mcp fork / Plaid / snapshot)
+  with graceful fallback, idempotent upsert keyed on transaction id, and retries with
+  backoff on transient API failures.
+- **An MCP server** (`bank-mcp-server`) exposing the engines as JSON-RPC tools.
+- **SQL analytics** — CTE/window-function read-models (`store/queries.sql`) cross-checked
+  against a Python recompute.
+- **Judgment about LLMs** — deterministic, tested math with the model confined to the
+  edges (narrate/match/extract), plus an opt-in trace of every model call.
+- **Observability, tests, types** — structured logging, 324 tests, mypy, green CI.
 
 ## Shape of the system
 
@@ -66,7 +109,7 @@ pip install -e ".[dev]"
 
 bank-mcp demo        # build + print a full digest from synthetic data
 bank-mcp analytics   # SQL reporting rollups (see src/bank_mcp/store/queries.sql)
-pytest -q               # 303 tests
+pytest -q               # 324 tests
 ruff check src tests    # lint
 mypy                    # type-check the package
 ```
