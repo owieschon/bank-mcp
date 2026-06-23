@@ -339,7 +339,7 @@ def _try_bank_mcp_http(method, params):
             req.full_url.startswith("http://127.0.0.1")):
         raise BankMCPError(f"Refusing non-localhost bank-mcp URL: {url}")
     try:
-        with safehttp.fetch(req, timeout=30, allow_localhost=True) as r:
+        with safehttp.fetch(req, timeout=30, allow_localhost=True, retries=2) as r:
             data = json.loads(r.read())
         if "error" in data:
             raise BankMCPError(f"bank-mcp HTTP error: {data['error']}")
@@ -416,7 +416,7 @@ def _try_plaid_direct(method, params, access_token=None):
         headers={"Content-Type": "application/json"},
     )
     try:
-        with safehttp.fetch(req, timeout=60) as r:
+        with safehttp.fetch(req, timeout=60, retries=2) as r:
             data = json.loads(r.read())
         return data
     except urllib.error.HTTPError as e:

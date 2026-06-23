@@ -79,6 +79,30 @@ of client-side currency re-denomination. It was left intact rather than generali
 to arbitrary currency pairs (that would be unrequested new work) or removed (that
 would subtract a working feature).
 
+## Observability, sized to the system
+
+- **Structured logging** (`bank_mcp._logging`): operational/diagnostic messages (sync
+  progress, fallbacks, failures) go through `logging` at levels, to stderr, configured
+  by the CLI entrypoints. User-facing output (digests, analytics tables, JSON) stays on
+  stdout — it's the result, not a log. Fallbacks that used to be silent (DB→JSON,
+  live-balance fetch failure) now log warnings, so a degraded run is visible. No secrets
+  or raw amounts are logged.
+- **LLM-call trace** (`trace_llm`, opt-in via `BANK_MCP_LLM_TRACE`): every model call
+  (narrate / merchant-match / receipt-extract) records purpose, model, sizes, latency,
+  and outcome to JSONL — metadata only by default, full prompt/response transcript only
+  with `BANK_MCP_LLM_TRACE_FULL=1`. This makes a model failure diagnosable after the fact
+  and lets you audit exactly what reached the model — which is the privacy thesis.
+- **MCP tool calls** are logged (name + success/failure) by the server.
+- **Sentry** is an optional `[observability]` extra that initializes only if installed
+  and `SENTRY_DSN` is set; otherwise a no-op, so the core stays zero-dependency.
+
+**Why not Phoenix / LangSmith / LangChain / LangGraph?** Those instrument LLM *chains
+and agent graphs*. This suite makes a handful of raw Anthropic API calls — there is no
+chain or graph to trace, so adding them would be tracing a structure that doesn't exist
+(and would break zero-dependency). The small, well-defined LLM surface is fully covered
+by `trace_llm` above. Reaching for a heavy tracing framework here would be the
+over-engineering this project otherwise avoids.
+
 ## Two detectors that intentionally differ (not duplication)
 
 `recurring.streams()` and `fee_fraud_scan._is_recurring()` both decide "is this a

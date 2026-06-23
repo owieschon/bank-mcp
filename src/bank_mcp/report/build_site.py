@@ -42,7 +42,7 @@ def fetch_fx():
     ]
     for url, pick in sources:
         try:
-            with safehttp.fetch(url, timeout=12) as r:
+            with safehttp.fetch(url, timeout=12, retries=2) as r:
                 rate = float(pick(json.load(r)))
             if rate > 0:
                 return {"rate": round(rate, 4), "ppp": PPP_BR, "date": dt.date.today().isoformat()}

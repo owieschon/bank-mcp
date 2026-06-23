@@ -126,7 +126,7 @@ def _call_haiku(system, user, api_key=None):
     try:
         # Route through the SSRF guard (HTTPS-only, host-pinned, bounded timeout),
         # the same wrapper delivery.call_haiku uses — no raw urlopen anywhere.
-        with safehttp.fetch(req, timeout=30) as r:
+        with safehttp.fetch(req, timeout=30, retries=2) as r:
             data = json.loads(r.read())
         out = "".join(b.get("text", "") for b in data.get("content", [])).strip()
         _logging.trace_llm("match/extract", MODEL, system, user, out, True,

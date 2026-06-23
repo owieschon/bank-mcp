@@ -10,12 +10,17 @@ Centralizing this replaces the per-call-site `startswith("https://")` guards tha
 were duplicated (and missing) across the codebase.
 """
 
+import logging
 import ssl
+import time
 import urllib.request
 import urllib.error
 from urllib.parse import urlparse
 
 DEFAULT_TIMEOUT = 30
+# Transient HTTP statuses worth retrying (rate-limit + transient server errors).
+_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+log = logging.getLogger(__name__)
 
 
 class _SafeRedirect(urllib.request.HTTPRedirectHandler):
@@ -56,12 +61,15 @@ def _validate(url, allow_localhost, allowed_hosts):
 
 
 def fetch(url, *, data=None, headers=None, method=None, timeout=DEFAULT_TIMEOUT,
-          allow_localhost=False, allowed_hosts=None):
+          allow_localhost=False, allowed_hosts=None, retries=0, backoff=0.5):
     """Open a URL or a urllib Request safely. Returns the response object (use as a
     context manager). Raises ValueError if the scheme/host is not allowed.
 
     `allow_localhost` permits http://localhost|127.0.0.1 (the local bank-mcp server).
     `allowed_hosts` (iterable) pins the request to a set of hostnames.
+    `retries` retries TRANSIENT failures only — timeouts, connection errors, and
+    HTTP 429/5xx — with exponential backoff (`backoff` * 2**attempt seconds). A 4xx
+    (other than 429) is a real error and is never retried. Default 0 = no retry.
     """
     if isinstance(url, urllib.request.Request):
         req = url
@@ -69,4 +77,27 @@ def fetch(url, *, data=None, headers=None, method=None, timeout=DEFAULT_TIMEOUT,
         req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
     # Validate the Request's final URL (covers both string and Request inputs).
     _validate(req.full_url, allow_localhost, allowed_hosts)
-    return _OPENER.open(req, timeout=timeout)
+
+    attempt = 0
+    while True:
+        try:
+            return _OPENER.open(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if e.code in _RETRY_STATUS and attempt < retries:
+                _backoff(req.full_url, attempt, backoff, f"HTTP {e.code}")
+                attempt += 1
+                continue
+            raise
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt < retries:
+                _backoff(req.full_url, attempt, backoff, str(getattr(e, "reason", e)))
+                attempt += 1
+                continue
+            raise
+
+
+def _backoff(url, attempt, base, why):
+    delay = base * (2 ** attempt)
+    log.warning("transient fetch failure (%s); retrying in %.1fs (attempt %d)",
+                why, delay, attempt + 1)
+    time.sleep(delay)
