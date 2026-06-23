@@ -40,7 +40,6 @@ Usage:
 import argparse
 import json
 import os
-import re
 import datetime as dt
 from collections import defaultdict
 
@@ -108,22 +107,6 @@ def roll_forward(stream, as_of, horizon_end):
     return occ
 
 
-# Money that LEAVES checking but isn't day-to-day consumption: account/app
-# transfers, Zelle/Venmo/Cash App, Apple Cash, ATM cash, wires. Counting these
-# as "discretionary burn" both double-counts (cash gets spent elsewhere) and
-# inflates the daily rate. Detected by Plaid category first, merchant text second.
-_BURN_EXCLUDE_CAT = ("TRANSFER_OUT", "TRANSFER_IN")
-_BURN_EXCLUDE_MERCHANT = re.compile(
-    r"\b(zelle|venmo|cash\s?app|apple\s?cash|atm|wire|account transfer|"
-    r"online transfer|to savings|withdrawal)\b", re.I)
-
-
-def _is_transfer_like(t):
-    cat = (t.get("category") or "")
-    if cat.startswith(_BURN_EXCLUDE_CAT):
-        return True
-    blob = f"{t.get('merchantName') or ''} {t.get('description') or ''}"
-    return bool(_BURN_EXCLUDE_MERCHANT.search(blob))
 
 
 def _winsorize(values, p=0.90):
@@ -164,7 +147,7 @@ def discretionary_burn(txns, as_of, window_days=BURN_WINDOW_DAYS):
             continue
         if sc.merchant_key(t) in recurring_keys:
             continue                       # belongs to a recurring stream
-        if _is_transfer_like(t):
+        if sc.is_transfer_like(t):
             continue                       # transfer / cash movement, not consumption
         amounts.append(amt)
 

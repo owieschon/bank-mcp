@@ -99,21 +99,6 @@ def parse_rules(path):
 def _cat(t):  return (t.get("category") or "")
 def _mer(t):  return (t.get("merchantName") or t.get("description") or "").lower()
 
-# SELF-transfers (own money moving between pockets: ATM cash, account transfers,
-# wires) are genuinely not spend or income — excluded from the savings math.
-# P2P sends to PEOPLE (Zelle/Venmo/Cash App/Apple Cash to a named person) are NOT
-# self-transfers — they're real money leaving (support, gifts) and count as spend.
-_SELF_TRANSFER_MER = ("atm", "withdrawal", "account transfer", "online transfer",
-                      "to savings", "wire transfer")
-def _is_transfer(t):
-    """Self-transfer only (excluded from savings math). P2P-to-people is spend."""
-    if _cat(t) in ("TRANSFER_OUT_ACCOUNT_TRANSFER", "TRANSFER_IN_ACCOUNT_TRANSFER",
-                   "TRANSFER_OUT_WITHDRAWAL"):
-        return True
-    m = _mer(t)
-    return any(k in m for k in _SELF_TRANSFER_MER)
-
-
 def _is_income(t):
     """Real recurring income only — paychecks. Refunds, disputed/temporary
     credits, and P2P money-in are NOT income (they inflate the savings rate)."""
@@ -129,18 +114,6 @@ def _is_income(t):
         return False
     return cat.startswith("INCOME_") or "payroll" in m
 
-
-# P2P sends to PEOPLE (Zelle/Venmo/Cash App/Apple Cash). These count as real
-# spend in HISTORY (the money left), but the user has stopped doing them, so they
-# must NOT be extrapolated into the forward savings-pace projection.
-_P2P_MER = ("zelle", "venmo", "cash app", "apple cash")
-def _is_p2p_send(t):
-    if not sc.is_outflow(t):
-        return False
-    if _cat(t) == "TRANSFER_OUT_TRANSFER_OUT_FROM_APPS":
-        return True
-    m = _mer(t)
-    return any(k in m for k in _P2P_MER)
 
 _COMMON_SUBS = ("albert", "netflix", "dashp", "perplexity", "adobe", "elevenlabs", "spotify")
 
@@ -221,7 +194,7 @@ def trailing_monthly_net(txns, as_of, n=3):
             # Exclude self-transfers AND P2P sends to people: the FORWARD pace
             # must reflect the user's current behavior, not past P2P habits.
             # (Both still count as real spend in the running total / history.)
-            if _is_transfer(t) or _is_p2p_send(t):
+            if sc.is_self_transfer(t) or sc.is_p2p_send(t):
                 continue
             outflow[key] += amt
         elif _is_income(t):
@@ -327,7 +300,7 @@ def category_breakdown(txns, window, registry=None, top=8):
     # One-off detection: a merchant seen only once across ALL history, charged big.
     merch_count = defaultdict(int)
     for t in txns:
-        if sc.is_outflow(t) and not _is_transfer(t):
+        if sc.is_outflow(t) and not sc.is_self_transfer(t):
             merch_count[_mer(t)] += 1
     def _oneoff(t):
         return merch_count.get(_mer(t), 0) <= 1 and (sc.amount_magnitude(t) or 0) >= ONEOFF_MIN
@@ -345,7 +318,7 @@ def category_breakdown(txns, window, registry=None, top=8):
             continue
         if w_start and w_end and not (w_start <= d <= w_end):
             continue
-        if _is_transfer(t):
+        if sc.is_self_transfer(t):
             transfers += amt
             continue
         if _oneoff(t):
@@ -419,7 +392,7 @@ def monthly_breakdown(txns, as_of, n=4):
         amt = sc.amount_magnitude(t) or 0.0
         key = (d.year, d.month)
         if sc.is_outflow(t):
-            if _is_transfer(t):
+            if sc.is_self_transfer(t):
                 continue
             outflow[key] += amt
         elif _is_income(t):
@@ -496,7 +469,7 @@ def build_summary(txns, R, mode, balance=None):
     for t in since_base:
         amt = sc.amount_magnitude(t) or 0.0
         if sc.is_outflow(t):
-            if _is_transfer(t):
+            if sc.is_self_transfer(t):
                 continue
             running -= amt
         elif _is_income(t):

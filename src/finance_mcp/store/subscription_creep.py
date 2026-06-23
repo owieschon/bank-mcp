@@ -128,6 +128,55 @@ CADENCE_DAYS = {          # canonical label -> representative interval (days);
 }
 
 
+# --- transfers / P2P (canonical vocabulary; the engines used to keep drifting copies) ---
+# SELF-transfers move your own money between pockets (ATM, account transfer, wire):
+# not spend, not income. P2P sends to PEOPLE (Zelle/Venmo/etc.) DO leave the account,
+# so they are spend, not self-transfers. `is_transfer_like` is the broad union, used
+# where ALL cash movement must be excluded (e.g. discretionary-burn estimation).
+SELF_TRANSFER_CATEGORIES = ("TRANSFER_OUT_ACCOUNT_TRANSFER",
+                            "TRANSFER_IN_ACCOUNT_TRANSFER",
+                            "TRANSFER_OUT_WITHDRAWAL")
+SELF_TRANSFER_MERCHANTS = ("atm", "withdrawal", "account transfer",
+                           "online transfer", "to savings", "wire")
+P2P_MERCHANTS = ("zelle", "venmo", "cash app", "apple cash")
+_TRANSFER_LIKE_RE = re.compile(
+    r"\b(zelle|venmo|cash\s?app|apple\s?cash|atm|wire|account transfer|"
+    r"online transfer|to savings|withdrawal)\b", re.I)
+
+
+def _category(t):
+    return t.get("category") or ""
+
+
+def _merchant_text(t):
+    return (t.get("merchantName") or t.get("description") or "").lower()
+
+
+def is_self_transfer(t):
+    """Own money moving between pockets (excluded from savings math)."""
+    if _category(t) in SELF_TRANSFER_CATEGORIES:
+        return True
+    return any(k in _merchant_text(t) for k in SELF_TRANSFER_MERCHANTS)
+
+
+def is_p2p_send(t):
+    """An outflow P2P send to a person (real spend, not a self-transfer)."""
+    if not is_outflow(t):
+        return False
+    if _category(t) == "TRANSFER_OUT_TRANSFER_OUT_FROM_APPS":
+        return True
+    return any(k in _merchant_text(t) for k in P2P_MERCHANTS)
+
+
+def is_transfer_like(t):
+    """Any non-consumption cash movement: self-transfers, P2P/app sends, or any
+    TRANSFER_* category. Broader than is_self_transfer."""
+    if _category(t).startswith(("TRANSFER_OUT", "TRANSFER_IN")):
+        return True
+    blob = f"{t.get('merchantName') or ''} {t.get('description') or ''}"
+    return bool(_TRANSFER_LIKE_RE.search(blob))
+
+
 def classify_cadence(gaps):
     if not gaps:
         return None, None

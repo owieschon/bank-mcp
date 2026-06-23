@@ -261,7 +261,13 @@ OUTLIER_MIN_PRIORS = 5   # merchant's own (>= N) priors is an outlier worth a lo
 
 
 def _is_recurring(dates):
-    """>=4 charges at a roughly regular cadence (a stream, not unrelated visits)."""
+    """>=4 charges at a roughly regular cadence (a stream, not unrelated visits).
+
+    Deliberately distinct from recurring.streams(): that classifies cadence into
+    named bands for the recurring-spend report; this is a stricter low-variance gate
+    (coefficient of variation <= 0.5) tuned for fee detection, where a false
+    positive "recurring fee" is worse than missing an irregular one.
+    """
     if len(dates) < 4:
         return False
     gaps = [(dates[i + 1] - dates[i]).days for i in range(len(dates) - 1)]
