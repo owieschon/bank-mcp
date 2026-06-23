@@ -1,8 +1,8 @@
 """Round-trip tests for db.py (Phase A write path). Synthetic data only."""
 
 import unittest
-from finance_mcp.store import db
-from finance_mcp.store import subscription_creep as sc
+from bank_mcp.store import db
+from bank_mcp.store import subscription_creep as sc
 
 
 def _txn(tid, *, amount, date, type_="debit", owner="primary", currency="USD",

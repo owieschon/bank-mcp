@@ -23,8 +23,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from finance_mcp.engines import llm_matcher
-from finance_mcp.engines import receipt_scanner as rs
+from bank_mcp.engines import llm_matcher
+from bank_mcp.engines import receipt_scanner as rs
 
 
 # ─────────────────────────── helpers ──────────────────────────────────────────
@@ -198,7 +198,7 @@ class CacheTest(unittest.TestCase):
         k2 = llm_matcher._cache_key(["C"], ["D"])
         self.assertNotEqual(k1, k2)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_cache_hit_skips_api(self, mock_haiku):
         """When cache has the result, no API call is made."""
         # Pre-populate cache
@@ -220,7 +220,7 @@ class CacheTest(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["bank_name"], "SQ *CHINA HOUSE")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_cache_miss_calls_api(self, mock_haiku):
         """When cache misses, API is called and result is cached."""
         mock_haiku.return_value = json.dumps([
@@ -246,7 +246,7 @@ class CacheTest(unittest.TestCase):
 class GracefulDegradationTest(unittest.TestCase):
     """LLM features degrade gracefully when no API key or API failure."""
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku", return_value=None)
+    @patch("bank_mcp.engines.llm_matcher._call_haiku", return_value=None)
     def test_no_api_key_returns_empty(self, mock_haiku):
         """When _call_haiku returns None (no key), return empty matches."""
         result = llm_matcher.llm_match_merchants(
@@ -256,12 +256,12 @@ class GracefulDegradationTest(unittest.TestCase):
         )
         self.assertEqual(result, [])
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku", return_value=None)
+    @patch("bank_mcp.engines.llm_matcher._call_haiku", return_value=None)
     def test_no_api_key_extract_returns_none(self, mock_haiku):
         result = llm_matcher.llm_extract_receipt("Your order total: $42.99")
         self.assertIsNone(result)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku", return_value="invalid response!!!")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku", return_value="invalid response!!!")
     def test_malformed_response_returns_empty(self, mock_haiku):
         result = llm_matcher.llm_match_merchants(
             [{"merchant": "Amazon"}],
@@ -292,7 +292,7 @@ class GracefulDegradationTest(unittest.TestCase):
 class ConfidenceFilterTest(unittest.TestCase):
     """Test that low-confidence matches are filtered out."""
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_below_threshold_filtered(self, mock_haiku):
         mock_haiku.return_value = json.dumps([
             {"bank": "A", "receipt": "B", "confidence": 0.5},  # below 0.8
@@ -308,7 +308,7 @@ class ConfidenceFilterTest(unittest.TestCase):
         if os.path.exists(os.path.join(tempfile.gettempdir(), "conf_test_cache.json")):
             os.remove(os.path.join(tempfile.gettempdir(), "conf_test_cache.json"))
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_above_threshold_kept(self, mock_haiku):
         mock_haiku.return_value = json.dumps([
             {"bank": "A", "receipt": "B", "confidence": 0.9},
@@ -330,7 +330,7 @@ class ConfidenceFilterTest(unittest.TestCase):
 class DeterministicUnchangedTest(unittest.TestCase):
     """LLM matching must not alter deterministic results — only leftovers."""
 
-    @patch("finance_mcp.engines.llm_matcher.llm_match_merchants", return_value=[])
+    @patch("bank_mcp.engines.llm_matcher.llm_match_merchants", return_value=[])
     def test_deterministic_match_unaffected(self, mock_llm):
         """Items that the fuzzy matcher handles never reach the LLM."""
         receipts = [_receipt("Shopify", 41.83, "2026-06-10")]
@@ -341,7 +341,7 @@ class DeterministicUnchangedTest(unittest.TestCase):
         self.assertEqual(result["matched"][0]["match_source"], "deterministic")
         self.assertEqual(len(result["unmatched_receipts"]), 0)
 
-    @patch("finance_mcp.engines.llm_matcher.llm_match_merchants", return_value=[])
+    @patch("bank_mcp.engines.llm_matcher.llm_match_merchants", return_value=[])
     def test_deterministic_discrepancy_unaffected(self, mock_llm):
         receipts = [_receipt("Amazon", 50.00, "2026-06-10")]
         txns = [_txn("Amazon", 100.00, "2026-06-10", "TX_2")]
@@ -356,7 +356,7 @@ class DeterministicUnchangedTest(unittest.TestCase):
 class LLMMatchIntegrationTest(unittest.TestCase):
     """Test LLM matches merging into reconciliation results."""
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_llm_resolves_unmatched(self, mock_haiku):
         """LLM pairs an unmatched receipt with an unmatched transaction."""
         mock_haiku.return_value = json.dumps([
@@ -382,7 +382,7 @@ class LLMMatchIntegrationTest(unittest.TestCase):
             self.assertIn("llm_confidence", llm_match)
             self.assertEqual(result["coverage"]["llm_matched"], 1)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_llm_discrepancy_flagged(self, mock_haiku):
         """LLM-matched pair with amount difference → discrepancy."""
         mock_haiku.return_value = json.dumps([
@@ -406,7 +406,7 @@ class LLMMatchIntegrationTest(unittest.TestCase):
         if llm_disc:
             self.assertIn("LLM-matched", llm_disc[0]["message"])
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_llm_respects_date_tolerance(self, mock_haiku):
         """LLM match is rejected if dates are too far apart."""
         mock_haiku.return_value = json.dumps([
@@ -425,7 +425,7 @@ class LLMMatchIntegrationTest(unittest.TestCase):
         self.assertEqual(len(llm_matched), 0)
         self.assertEqual(len(result["unmatched_receipts"]), 1)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku", return_value=None)
+    @patch("bank_mcp.engines.llm_matcher._call_haiku", return_value=None)
     def test_llm_failure_falls_back_gracefully(self, mock_haiku):
         """When LLM fails, deterministic results stand alone."""
         # Use merchant names with ZERO deterministic overlap:
@@ -479,7 +479,7 @@ class ReceiptExtractionFallbackTest(unittest.TestCase):
             }],
         }
 
-    @patch("finance_mcp.engines.llm_matcher.llm_extract_receipt")
+    @patch("bank_mcp.engines.llm_matcher.llm_extract_receipt")
     def test_llm_extracts_when_regex_fails(self, mock_extract):
         """When regex can't find amount but email is financial, LLM is called."""
         mock_extract.return_value = {
@@ -499,7 +499,7 @@ class ReceiptExtractionFallbackTest(unittest.TestCase):
         self.assertEqual(receipt["extraction_source"], "llm_assisted")
         mock_extract.assert_called_once()
 
-    @patch("finance_mcp.engines.llm_matcher.llm_extract_receipt")
+    @patch("bank_mcp.engines.llm_matcher.llm_extract_receipt")
     def test_llm_not_called_when_regex_succeeds(self, mock_extract):
         """When regex finds amount, LLM is NOT called."""
         thread = self._make_thread(
@@ -513,7 +513,7 @@ class ReceiptExtractionFallbackTest(unittest.TestCase):
         self.assertNotIn("extraction_source", receipt)
         mock_extract.assert_not_called()
 
-    @patch("finance_mcp.engines.llm_matcher.llm_extract_receipt", return_value=None)
+    @patch("bank_mcp.engines.llm_matcher.llm_extract_receipt", return_value=None)
     def test_llm_failure_still_extracts_merchant(self, mock_extract):
         """When LLM fails, we still get whatever regex found (merchant)."""
         thread = self._make_thread(
@@ -529,7 +529,7 @@ class ReceiptExtractionFallbackTest(unittest.TestCase):
             self.assertEqual(receipt["merchant"], "Amazon")
             self.assertIsNone(receipt["amount"])
 
-    @patch("finance_mcp.engines.llm_matcher.llm_extract_receipt")
+    @patch("bank_mcp.engines.llm_matcher.llm_extract_receipt")
     def test_llm_not_called_for_unknown_email_type(self, mock_extract):
         """LLM is NOT called when email type is 'unknown'."""
         thread = self._make_thread(
@@ -546,7 +546,7 @@ class ReceiptExtractionFallbackTest(unittest.TestCase):
 class PrivacyTest(unittest.TestCase):
     """Verify that only merchant names are sent to the LLM."""
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_only_names_in_prompt(self, mock_haiku):
         """The API call should only contain merchant name strings."""
         mock_haiku.return_value = "[]"

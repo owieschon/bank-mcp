@@ -21,7 +21,7 @@ import os
 import tempfile
 import unittest
 
-from finance_mcp.engines import cashflow_forecaster as cf
+from bank_mcp.engines import cashflow_forecaster as cf
 
 
 def D(s):

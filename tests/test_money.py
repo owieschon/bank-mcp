@@ -10,7 +10,7 @@ floats would drift.
 import sqlite3
 import unittest
 
-from finance_mcp import money
+from bank_mcp import money
 
 
 class ToCentsTest(unittest.TestCase):

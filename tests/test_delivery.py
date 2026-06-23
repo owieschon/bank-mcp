@@ -17,7 +17,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest import mock
 
-from finance_mcp.report import delivery
+from bank_mcp.report import delivery
 
 
 class GracefulDegradation(unittest.TestCase):

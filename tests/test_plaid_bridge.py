@@ -12,7 +12,7 @@ import tempfile
 import unittest
 from unittest import mock
 
-from finance_mcp.ingest import plaid_bridge
+from bank_mcp.ingest import plaid_bridge
 
 
 class NormalizePlaidTxnTest(unittest.TestCase):

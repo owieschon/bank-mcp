@@ -9,7 +9,7 @@ import io
 import json
 import unittest
 
-from finance_mcp import mcp_server as srv
+from bank_mcp import mcp_server as srv
 
 
 def _req(method, params=None, rid=1):
@@ -26,7 +26,7 @@ class HandleTest(unittest.TestCase):
         resp = srv.handle(_req("initialize", {"protocolVersion": "2024-11-05"}))
         self.assertEqual(resp["jsonrpc"], "2.0")
         self.assertIn("tools", resp["result"]["capabilities"])
-        self.assertEqual(resp["result"]["serverInfo"]["name"], "finance-mcp")
+        self.assertEqual(resp["result"]["serverInfo"]["name"], "bank-mcp")
         self.assertEqual(resp["result"]["protocolVersion"], "2024-11-05")
 
     def test_tools_list(self):

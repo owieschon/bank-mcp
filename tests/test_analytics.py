@@ -10,8 +10,8 @@ apply the engines' transfer/income exclusions); the Python checks mirror that.
 import unittest
 from collections import defaultdict
 
-from finance_mcp import demo
-from finance_mcp.store import db, analytics
+from bank_mcp import demo
+from bank_mcp.store import db, analytics
 
 
 class AnalyticsSQLTest(unittest.TestCase):

@@ -65,7 +65,7 @@ could actually occur.
 
 ## Package layout mirrors the data flow
 
-`src/finance_mcp/` is grouped into `ingest/` → `store/` → `engines/` → `report/`,
+`src/bank_mcp/` is grouped into `ingest/` → `store/` → `engines/` → `report/`,
 the direction data actually moves, with `finance_agent.py` as the single
 orchestrator on top. The dependency direction is acyclic. A flat module package
 was considered; the grouped layout was chosen so the architecture is legible from

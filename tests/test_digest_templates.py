@@ -15,7 +15,7 @@ Run: python3 -m pytest test_digest_templates.py -v
 
 import unittest
 
-from finance_mcp.report.digest_templates import (
+from bank_mcp.report.digest_templates import (
     render_weekly_html,
     render_monthly_html,
     _format_date_range,
@@ -173,7 +173,7 @@ class TestRenderWeeklyHtml(unittest.TestCase):
         """Full weekly digest contains key elements."""
         digest = _mock_digest()
         html = render_weekly_html(digest)
-        self.assertIn("finance.mcp", html)
+        self.assertIn("bank.mcp", html)
         self.assertIn("hero-card", html)
         self.assertIn("vitals-strip", html)
         self.assertIn("Weekly Finance Digest", html)
@@ -230,7 +230,7 @@ class TestRenderMonthlyHtml(unittest.TestCase):
         """Monthly digest contains hero card, vitals, footer."""
         digest = _mock_digest(mode="monthly")
         html = render_monthly_html(digest)
-        self.assertIn("finance.mcp", html)
+        self.assertIn("bank.mcp", html)
         self.assertIn("hero-card", html)
         self.assertIn("vitals-strip", html)
         self.assertIn("report-footer", html)

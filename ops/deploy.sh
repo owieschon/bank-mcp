@@ -36,7 +36,7 @@ echo "[deploy] scanning project aliases for any PUBLIC ones…"
 npx vercel alias ls --scope "$SCOPE" 2>/dev/null \
   | grep -oE '[a-z0-9.-]+\.vercel\.app' | sort -u | while read -r a; do
     code=$(curl -s -o /tmp/_dep_check.html -w "%{http_code}" --max-time 15 "https://$a/" 2>/dev/null || echo 000)
-    if [ "$code" = "200" ] && grep -qiE "Savings Pace|Your money|finance.mcp" /tmp/_dep_check.html 2>/dev/null; then
+    if [ "$code" = "200" ] && grep -qiE "Savings Pace|Your money|bank.mcp" /tmp/_dep_check.html 2>/dev/null; then
       echo "  PUBLIC alias found: $a — removing"
       npx vercel alias rm "$a" --yes --scope "$SCOPE" 2>/dev/null || true
     fi

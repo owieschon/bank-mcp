@@ -1,4 +1,4 @@
-# finance.mcp
+# bank.mcp
 
 A personal-finance analysis suite that turns a stream of bank transactions into a
 single digest — cash-flow forecast, savings-goal pace, spending breakdown,
@@ -16,7 +16,7 @@ The line it draws between the math and the LLM:
 It runs on the **Python standard library only — zero runtime dependencies.**
 
 > Status: a personal project, cleaned up as a work sample. All data in the repo is
-> synthetic (`examples/`, `src/finance_mcp/demo.py`); there is no real financial data
+> synthetic (`examples/`, `src/bank_mcp/demo.py`); there is no real financial data
 > here. 303 tests pass; `ruff` and `mypy` are clean.
 
 ## Shape of the system
@@ -42,7 +42,7 @@ It runs on the **Python standard library only — zero runtime dependencies.**
 The package layout mirrors that flow:
 
 ```
-src/finance_mcp/
+src/bank_mcp/
   ingest/    safehttp · plaid_bridge · plaid_link · sync
   store/     db (SQLite) · subscription_creep (field/cadence accessors) ·
              obligation_registry · merchant_categorizer ·
@@ -51,7 +51,7 @@ src/finance_mcp/
              recurring · receipt_scanner · dispute_agent · llm_matcher
   report/    delivery · digest_templates · build_site · web/
   finance_agent.py   # orchestrator: reconcile → run each engine → one digest
-  demo.py            # synthetic data + `python -m finance_mcp demo`
+  demo.py            # synthetic data + `python -m bank_mcp demo`
 tests/        unit tests + a synthetic transaction fixture
 examples/     copy-these config templates (synthetic)
 ops/          launchd plist + deploy scripts (author-local)
@@ -64,19 +64,19 @@ docs/         ARCHITECTURE · SETUP · DECISIONS
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 
-finance-mcp demo        # build + print a full digest from synthetic data
-finance-mcp analytics   # SQL reporting rollups (see src/finance_mcp/store/queries.sql)
+bank-mcp demo        # build + print a full digest from synthetic data
+bank-mcp analytics   # SQL reporting rollups (see src/bank_mcp/store/queries.sql)
 pytest -q               # 303 tests
 ruff check src tests    # lint
 mypy                    # type-check the package
 ```
 
-`finance-mcp demo` needs no bank credentials and no real data — it generates a
+`bank-mcp demo` needs no bank credentials and no real data — it generates a
 synthetic dataset and runs the whole pipeline end to end. To build the static
 report site from a dataset:
 
 ```bash
-python -m finance_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
+python -m bank_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
 # writes ./site/  (index.html + report.html + assets)
 ```
 

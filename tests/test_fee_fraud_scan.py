@@ -9,7 +9,7 @@ avoidable+suspect headline arithmetic. Run: python3 test_fee_fraud_scan.py
 
 import datetime as dt
 
-from finance_mcp.engines import fee_fraud_scan as ffs
+from bank_mcp.engines import fee_fraud_scan as ffs
 
 
 # ----------------------------- synthetic data -------------------------------

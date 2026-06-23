@@ -22,7 +22,7 @@ Uses synthetic data — no Gmail MCP calls.
 import datetime as dt
 import unittest
 
-from finance_mcp.engines import receipt_scanner as rs
+from bank_mcp.engines import receipt_scanner as rs
 
 
 # ─────────────────────────── extraction helpers ──────────────────────────────
@@ -532,7 +532,7 @@ class FeeFraudIntegrationTest(unittest.TestCase):
     """Verify that reconciliation results flow into fee_fraud_scan.scan."""
 
     def test_discrepancy_appears_in_scan(self):
-        from finance_mcp.engines import fee_fraud_scan as ff
+        from bank_mcp.engines import fee_fraud_scan as ff
 
         # Build minimal transaction list (needs enough for window_bounds)
         txns = [_txn(f"Merchant{i}", 10.0, f"2026-06-{10+i:02d}", f"TX_{i}")
@@ -569,7 +569,7 @@ class FeeFraudIntegrationTest(unittest.TestCase):
 
     def test_scan_without_reconciliation(self):
         """scan() works identically to before when no reconciliation passed."""
-        from finance_mcp.engines import fee_fraud_scan as ff
+        from bank_mcp.engines import fee_fraud_scan as ff
 
         txns = [_txn(f"Merchant{i}", 10.0, f"2026-06-{10+i:02d}", f"TX_{i}")
                 for i in range(5)]

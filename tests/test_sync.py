@@ -13,9 +13,9 @@ import tempfile
 import unittest
 from unittest import mock
 
-from finance_mcp.store import db
-from finance_mcp.ingest import plaid_bridge
-from finance_mcp.ingest import sync
+from bank_mcp.store import db
+from bank_mcp.ingest import plaid_bridge
+from bank_mcp.ingest import sync
 
 
 class _DBIsolation:
@@ -376,7 +376,7 @@ class FailureEmailTest(unittest.TestCase):
     def test_send_failure_email_does_not_crash(self):
         """Even if delivery is misconfigured, _send_failure_email swallows errors."""
         # Patch send_email to raise — _send_failure_email should not propagate
-        with mock.patch("finance_mcp.report.delivery.send_email", side_effect=Exception("no creds")):
+        with mock.patch("bank_mcp.report.delivery.send_email", side_effect=Exception("no creds")):
             # Should not raise
             sync._send_failure_email("test error", "test detail")
 
@@ -437,7 +437,7 @@ class SyncConnectionsTest(unittest.TestCase):
     """sync_connections pulls each bank-mcp connection by id and tags its owner."""
 
     def test_per_connection_owner_tagging(self):
-        from finance_mcp.store import db
+        from bank_mcp.store import db
         real_connect = db.connect                  # capture before patching
         fd, path = tempfile.mkstemp(suffix=".db"); os.close(fd)
         owners = {"conn-primary": "primary", "conn-secondary": "secondary"}

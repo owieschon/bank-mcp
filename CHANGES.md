@@ -48,16 +48,16 @@ a configurable **"savings goal"**:
 ## 3. Packaging and structure
 
 - Flat root (33 modules at top level, bare imports) → an installable
-  `src/finance_mcp/` package grouped by the data flow: `ingest / store / engines /
+  `src/bank_mcp/` package grouped by the data flow: `ingest / store / engines /
   report` + a top-level orchestrator. Imports rewritten to absolute package paths.
-- Added `pyproject.toml` (PEP 621, **zero runtime dependencies**, a `finance-mcp`
+- Added `pyproject.toml` (PEP 621, **zero runtime dependencies**, a `bank-mcp`
   console script, ruff config), moved tests into `tests/` with a `conftest.py` and a
   synthetic fixture, added an MIT `LICENSE`, and a GitHub Actions CI workflow
   (lint + tests on Python 3.10/3.11/3.12).
 
 ## 4. Runs end-to-end on a clean clone
 
-- Added a synthetic data generator (`demo.py`) and a `finance-mcp demo` command, so the
+- Added a synthetic data generator (`demo.py`) and a `bank-mcp demo` command, so the
   whole pipeline runs with no bank credentials and no real data.
 - `test_finance_agent` previously loaded the gitignored real `transactions.json` and
   failed on a fresh checkout; it now loads the committed synthetic fixture.
@@ -101,7 +101,7 @@ competency. `store/queries.sql` holds three readable, commented
 CTE queries using window functions — monthly cash flow with a running total
 (`SUM() OVER`) and month-over-month delta (`LAG()`), category breakdown as a share of
 spend (ratio-to-total window), and top merchants ranked (`RANK()`). `store/analytics.py`
-runs them and `finance-mcp analytics` prints them. `tests/test_analytics.py` cross-checks
+runs them and `bank-mcp analytics` prints them. `tests/test_analytics.py` cross-checks
 every query result against an independent Python recomputation so the SQL and the
 engines can never silently diverge. The algorithmic forecasting/cadence math was left in
 Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
@@ -115,14 +115,14 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
   float-rounded-to-cent (see `docs/DECISIONS.md`).
 - **Removed the dead email-render cluster** (`select_hero` / `_build_email_portion` /
   `render_email_html`, ~420 LOC) — no live caller; `digest_templates.py` 2487 → 2065 lines.
-- **Added a real MCP server** (`finance-mcp-server`) — pure-stdlib JSON-RPC over stdio
+- **Added a real MCP server** (`bank-mcp-server`) — pure-stdlib JSON-RPC over stdio
   exposing the engines as tools, so the "mcp" in the name is real and the zero-dependency
   property is kept.
 - **Unified the transfer/P2P vocabulary** into `subscription_creep` (the engines kept
   drifting copies); documented why the two recurring detectors intentionally differ.
 - **Trimmed speculative schema** — dropped the unused `envelopes` table and the
   always-NULL `category_human` column.
-- **mypy gate over the whole package.** CI runs `mypy` across all of `src/finance_mcp`
+- **mypy gate over the whole package.** CI runs `mypy` across all of `src/bank_mcp`
   (default strictness — real type errors, clean); `money.py`, `store/analytics.py`, and
   `mcp_server.py` are fully annotated, and richer annotations spread from there.
 - **Split the oversized renderer.** `digest_templates.py` (2487 lines) → 1178, with the
@@ -134,5 +134,5 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
 ## Verification
 
 `pip install -e ".[dev]"` succeeds; `ruff check src tests` is clean; **303 tests pass**
-via the installed package; `finance-mcp demo`, `finance-mcp analytics`, and `build_site`
+via the installed package; `bank-mcp demo`, `bank-mcp analytics`, and `build_site`
 all produce output from synthetic data. PII/secret sweeps over the whole tree come back clean.

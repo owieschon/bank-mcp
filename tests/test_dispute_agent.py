@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from finance_mcp.engines import dispute_agent as da
+from bank_mcp.engines import dispute_agent as da
 
 
 class TestMerchantContactLookup(unittest.TestCase):
@@ -35,7 +35,7 @@ class TestMerchantContactLookup(unittest.TestCase):
         self.assertEqual(result["email"], "help@amazon.com")
         self.assertEqual(result["source"], "cache")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_cache_miss_llm_fallback(self, mock_haiku):
         """LLM is called when cache misses, result is cached."""
         mock_haiku.return_value = "billing@netflix.com"
@@ -50,7 +50,7 @@ class TestMerchantContactLookup(unittest.TestCase):
         self.assertIn("netflix", contacts)
         self.assertEqual(contacts["netflix"]["email"], "billing@netflix.com")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_not_found(self, mock_haiku):
         """Returns not_found when LLM says unknown."""
         mock_haiku.return_value = "unknown"
@@ -60,7 +60,7 @@ class TestMerchantContactLookup(unittest.TestCase):
         self.assertIsNone(result["email"])
         self.assertEqual(result["source"], "not_found")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_no_api_key(self, mock_haiku):
         """Graceful when no API key available."""
         mock_haiku.return_value = None
@@ -70,7 +70,7 @@ class TestMerchantContactLookup(unittest.TestCase):
         self.assertIsNone(result["email"])
         self.assertEqual(result["source"], "not_found")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_invalid_email_rejected(self, mock_haiku):
         """Non-email LLM response is rejected."""
         mock_haiku.return_value = "I don't know the email for that company"
@@ -299,7 +299,7 @@ class TestRefundEmailGeneration(unittest.TestCase):
             os.remove(os.path.join(self.tmpdir, f))
         os.rmdir(self.tmpdir)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_refund_email_with_haiku(self, mock_haiku):
         """Haiku generates email body for discrepancy finding."""
         # First call: merchant contact lookup (returns unknown)
@@ -335,7 +335,7 @@ class TestRefundEmailGeneration(unittest.TestCase):
         # HTML body present
         self.assertIn("<div", draft["htmlBody"])
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_refund_email_template_fallback(self, mock_haiku):
         """Template fallback when no API key."""
         mock_haiku.return_value = None  # no API key
@@ -360,7 +360,7 @@ class TestRefundEmailGeneration(unittest.TestCase):
         self.assertIn("[ACCOUNT_HOLDER]", draft["body"])
         self.assertEqual(draft["amount"], 15.99)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_refund_email_discrepancy_template(self, mock_haiku):
         """Discrepancy template includes overcharge amount."""
         mock_haiku.return_value = None  # no API key, triggers template
@@ -558,7 +558,7 @@ class TestProcessFindings(unittest.TestCase):
         self.assertEqual(disputes[0]["merchant"], "BigCharge")
         self.assertEqual(disputes[0]["type"], "bank_dispute")
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_process_auto_draft(self, mock_haiku):
         """Auto-draft creates email content for findings."""
         mock_haiku.return_value = None  # template fallback
@@ -674,7 +674,7 @@ class TestRendering(unittest.TestCase):
 class TestPrivacy(unittest.TestCase):
     """Privacy constraints: verify what gets sent to the LLM."""
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_refund_body_no_account_numbers(self, mock_haiku):
         """LLM prompt for refund email contains no sensitive data."""
         captured_calls = []
@@ -702,7 +702,7 @@ class TestPrivacy(unittest.TestCase):
         self.assertIn("TestMerchant", combined)
         self.assertIn("50.00", combined)
 
-    @patch("finance_mcp.engines.llm_matcher._call_haiku")
+    @patch("bank_mcp.engines.llm_matcher._call_haiku")
     def test_merchant_lookup_only_name(self, mock_haiku):
         """Merchant contact lookup sends only the merchant name."""
         captured_calls = []
@@ -752,12 +752,12 @@ class TestPipelineIntegration(unittest.TestCase):
 
     def test_finance_agent_imports_dispute(self):
         """finance_agent.py imports dispute_agent."""
-        from finance_mcp import finance_agent as fa
+        from bank_mcp import finance_agent as fa
         self.assertTrue(hasattr(fa, '_dispute_section'))
 
     def test_finance_agent_cli_flags(self):
         """finance_agent has dispute-related CLI flags."""
-        from finance_mcp import finance_agent as fa
+        from bank_mcp import finance_agent as fa
         # Just verify the module loaded correctly with the new flags
         self.assertTrue(hasattr(fa, 'build_digest'))
 

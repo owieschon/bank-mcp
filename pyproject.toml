@@ -3,12 +3,12 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "finance-mcp"
+name = "bank-mcp"
 description = "A deterministic personal-finance analysis suite (stdlib-only; LLMs only narrate)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "finance.mcp contributors" }]
+authors = [{ name = "bank.mcp contributors" }]
 keywords = ["personal-finance", "plaid", "budgeting", "cash-flow"]
 # Runtime dependencies: NONE. The suite runs on the Python standard library only.
 dependencies = []
@@ -18,19 +18,19 @@ dynamic = ["version"]
 dev = ["pytest", "ruff", "mypy"]
 
 [project.scripts]
-finance-mcp = "finance_mcp.__main__:main"
-finance-mcp-server = "finance_mcp.mcp_server:main"
+bank-mcp = "bank_mcp.__main__:main"
+bank-mcp-server = "bank_mcp.mcp_server:main"
 
 [tool.setuptools.dynamic]
-version = { attr = "finance_mcp.__version__" }
+version = { attr = "bank_mcp.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"finance_mcp" = ["data/*.md", "data/*.json"]
-"finance_mcp.store" = ["*.sql"]
-"finance_mcp.report" = ["web/*.html", "web/assets/*.js"]
+"bank_mcp" = ["data/*.md", "data/*.json"]
+"bank_mcp.store" = ["*.sql"]
+"bank_mcp.report" = ["web/*.html", "web/assets/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -44,7 +44,7 @@ target-version = "py310"
 # missing-annotation crusade). The money/analytics/mcp_server core is fully annotated;
 # the rest is checked for type correctness as annotations spread.
 python_version = "3.10"
-files = ["src/finance_mcp"]
+files = ["src/bank_mcp"]
 ignore_missing_imports = true
 
 [tool.ruff.lint]

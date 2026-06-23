@@ -10,7 +10,7 @@ and the inflow/outflow split. Run: python3 test_recurring.py
 import unittest
 from datetime import date, timedelta
 
-from finance_mcp.engines import recurring
+from bank_mcp.engines import recurring
 
 
 def _txn(merchant, amount, d, debit=True):

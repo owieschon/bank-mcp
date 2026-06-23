@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Hand-checked unit tests for the money math. Run: python3 test_budget_scorer.py"""
 import datetime as dt
-from finance_mcp.engines import budget_scorer as bs
+from bank_mcp.engines import budget_scorer as bs
 
 def approx(a, b, tol=0.05): return abs(a - b) <= tol
 

@@ -36,7 +36,7 @@ receipts.json
 rules.md
 
 # Local data directory for real (non-synthetic) inputs (repo root only —
-# NOT src/finance_mcp/data/, which holds the bundled synthetic demo data)
+# NOT src/bank_mcp/data/, which holds the bundled synthetic demo data)
 /data/
 
 # Multi-source config (references token env var names — sensitive)

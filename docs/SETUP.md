@@ -16,16 +16,16 @@ pip install -e ".[dev]"
 ## Run the demo (no bank, no real data)
 
 ```bash
-finance-mcp demo            # build + print a digest from synthetic data
-finance-mcp demo --json     # dump the synthetic transaction dataset
-finance-mcp analytics       # SQL reporting rollups over the store (see store/queries.sql)
+bank-mcp demo            # build + print a digest from synthetic data
+bank-mcp demo --json     # dump the synthetic transaction dataset
+bank-mcp analytics       # SQL reporting rollups over the store (see store/queries.sql)
 ```
 
-`analytics` runs the SQL read-models in `src/finance_mcp/store/queries.sql`
+`analytics` runs the SQL read-models in `src/bank_mcp/store/queries.sql`
 (window functions; requires SQLite ≥ 3.25, which every supported Python ships).
 With no `--db` it seeds an in-memory database from the synthetic demo data.
 
-The synthetic dataset is generated deterministically by `src/finance_mcp/demo.py`
+The synthetic dataset is generated deterministically by `src/bank_mcp/demo.py`
 and is also the source of the test fixture (`tests/fixtures/transactions.sample.json`).
 
 ## Tests and lint
@@ -39,7 +39,7 @@ mypy                        # type-check the package (money/analytics/mcp_server
 ## Build the static report site
 
 ```bash
-python -m finance_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
+python -m bank_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
 # writes ./site/  (index.html landing page + report.html + assets)
 ```
 
@@ -57,11 +57,11 @@ is ever committed. To wire it up:
    cp examples/obligations.example.json  obligations.json
    cp examples/plaid_items.example.json  plaid_items.json
    ```
-2. Connect a bank. Transport lives in `src/finance_mcp/ingest/`:
+2. Connect a bank. Transport lives in `src/bank_mcp/ingest/`:
    - a bank-mcp subprocess fork (reads its own
      `~/.bank-mcp/config.json`), or
    - direct Plaid — set `PLAID_ACCESS_TOKEN` (env var or macOS Keychain). Mint a token
-     for a new bank Item with `python -m finance_mcp.ingest.plaid_link`.
+     for a new bank Item with `python -m bank_mcp.ingest.plaid_link`.
 3. Credentials resolve **env var → macOS Keychain** (e.g. `ANTHROPIC_API_KEY`,
    `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `PLAID_*`). Nothing is hardcoded.
 

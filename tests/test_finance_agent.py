@@ -20,12 +20,12 @@ import json
 import os
 import unittest
 
-from finance_mcp.store import subscription_creep as sc
-from finance_mcp.engines import budget_scorer as bs
-from finance_mcp.engines import cashflow_forecaster as cf
-from finance_mcp.engines import fee_fraud_scan as ff
-from finance_mcp.engines import recurring as rec
-from finance_mcp import finance_agent as fa
+from bank_mcp.store import subscription_creep as sc
+from bank_mcp.engines import budget_scorer as bs
+from bank_mcp.engines import cashflow_forecaster as cf
+from bank_mcp.engines import fee_fraud_scan as ff
+from bank_mcp.engines import recurring as rec
+from bank_mcp import finance_agent as fa
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 TXNS_PATH = os.path.join(_HERE, "fixtures", "transactions.sample.json")

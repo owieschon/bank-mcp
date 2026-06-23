@@ -10,8 +10,8 @@ import os
 import tempfile
 import unittest
 
-from finance_mcp.store import merchant_categorizer as mc
-from finance_mcp.store import subscription_creep as sc
+from bank_mcp.store import merchant_categorizer as mc
+from bank_mcp.store import subscription_creep as sc
 
 
 def txn(category=None, counterparties=None, merchant_name=None, descriptor=None,

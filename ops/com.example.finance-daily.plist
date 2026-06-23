@@ -6,7 +6,7 @@
   bank, analyze on the live balance, email the digest, and refresh the private
   web report.
 
-  This is a TEMPLATE: replace /path/to/finance-mcp and /path/to/logs with real
+  This is a TEMPLATE: replace /path/to/bank-mcp and /path/to/logs with real
   absolute paths before installing.
 
   Install:
@@ -24,10 +24,10 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/path/to/finance-mcp/ops/daily.sh</string>
+    <string>/path/to/bank-mcp/ops/daily.sh</string>
   </array>
   <key>WorkingDirectory</key>
-  <string>/path/to/finance-mcp</string>
+  <string>/path/to/bank-mcp</string>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Hour</key>
