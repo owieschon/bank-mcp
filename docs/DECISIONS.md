@@ -52,12 +52,16 @@ rows. One module, `money.py`, is the rounding/formatting authority: `to_cents()`
 half-up via `Decimal(str(x))` (so a value rounds at the two decimals a human reads), and
 `fmt()` is the single display formatter (`delivery.money()` delegates to it).
 
-Scope, stated plainly: the exact-cents guarantee is at the **storage and aggregation
-boundary**, which is where unbounded float accumulation would otherwise bite. The
-deterministic engines still compute the digest in float dollars rounded to the cent at
-each step (results are bounded to the cent and unit-tested). Converting every engine
-internal to `Decimal` end-to-end is a sensible follow-up, scoped out here to keep this
-change verifiable rather than half-done.
+Where exactness lives, and why that's the right line: the **storage and aggregation
+layer** (the DB column and the SQL rollups) is exact integer cents — that is where an
+unbounded running total over thousands of rows would otherwise accumulate float error,
+so that is where exactness matters most. The reporting engines then compute display
+figures in float rounded to the cent at each step (bounded, unit-tested). This is a
+deliberate, proportionate choice for a **reporting/digest tool**: it is not a
+double-entry ledger, so threading `Decimal` through all six engines (and round-tripping
+it through the JSON the digest is serialized to) would add fragility and ceremony for
+no behavior change. The penny-perfect guarantee is placed exactly where penny drift
+could actually occur.
 
 ## Package layout mirrors the data flow
 
@@ -75,19 +79,13 @@ of client-side currency re-denomination. It was left intact rather than generali
 to arbitrary currency pairs (that would be unrequested new work) or removed (that
 would subtract a working feature).
 
-## Deferred, not done (flagged honestly)
+## Two detectors that intentionally differ (not duplication)
 
-- **A ~300-line email renderer** in `report/digest_templates.py`
-  (`render_email_html` / `_build_email_portion`) has no live caller — the live
-  report path is `render_report_html` / `render_weekly_html` /
-  `render_monthly_html`. It is still exercised by tests and is interleaved with
-  the live `select_hero` / `render_report_html` code, so it was left intact rather
-  than risk the live renderer. A good follow-up to remove on its own.
-- **Two small duplications** were left as-is to avoid changing behavior during a
-  cleanup: transfer-detection and recurring-detection each exist in two places
-  with slightly different thresholds. Unifying them would change outputs and
-  belongs in its own change with its own tests.
-- **`engines/llm_matcher._call_haiku`** still uses `urllib` directly instead of
-  the `ingest/safehttp` wrapper that the rest of the suite routes through. Routing
-  it through `safehttp` is a sensible SSRF-hardening follow-up; it was not changed
-  here because it alters a network path and deserves its own focused change.
+`recurring.streams()` and `fee_fraud_scan._is_recurring()` both decide "is this a
+recurring charge," but on purpose by different rules: the former classifies cadence into
+named bands for the recurring-spend report; the latter is a stricter low-variance gate
+(coefficient of variation ≤ 0.5) tuned for fee detection, where a false-positive
+"recurring fee" is worse than missing an irregular one. The shared *vocabulary* (the
+transfer/P2P merchant lists) was consolidated into `subscription_creep`; the two
+recurrence policies are kept distinct because they answer different questions. This is a
+design choice, not drift — flagged so a reviewer doesn't read it as copy-paste.

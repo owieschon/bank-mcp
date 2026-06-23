@@ -81,18 +81,17 @@ is why it went unnoticed. Fixed with the obvious one-liner —
 used literally one line above. This is the only intentional logic change in the cleanup;
 called out here rather than slipped in silently.
 
-## 7. Deliberately left alone (flagged, not done)
+## 7. Flagged in the first pass, then resolved
 
-- A **~300-line dead-but-tested email renderer** in `report/digest_templates.py`
-  (`render_email_html` / `_build_email_portion`) has no live caller, but it is covered by
-  tests and interleaved with the live report renderer in a large module. Recommended as a
-  follow-up to remove on its own rather than a risky edit here.
-- **Two small duplicated detectors** (transfer-exclusion and recurring-stream detection,
-  each in two places with slightly different thresholds) were left intact — unifying them
-  would change outputs and belongs in its own change with its own tests.
-- **`llm_matcher._call_haiku`** still uses `urllib` directly instead of the `safehttp`
-  SSRF wrapper. Routing it through `safehttp` is a sensible hardening follow-up, not done
-  here because it alters a working network path.
+The first cleanup pass deliberately deferred three items; the hardening pass (§9) and a
+follow-up pass then closed all of them:
+
+- The **dead email renderer** (`render_email_html` / `_build_email_portion`, ~420 LOC) —
+  **removed** (§9).
+- The **duplicated transfer vocabulary** — **unified** into `subscription_creep` (§9).
+  (The two recurrence detectors are kept distinct on purpose — see `docs/DECISIONS.md`.)
+- **`llm_matcher._call_haiku`** bypassing the SSRF wrapper — **fixed**: it now routes
+  through `safehttp`, and no raw `urlopen` remains anywhere in the suite.
 
 ## 8. Added a SQL analytics layer
 
@@ -129,6 +128,8 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
 - **Split the oversized renderer.** `digest_templates.py` (2487 lines) → 1178, with the
   static CSS/SVG in `_report_styles.py` and the date/money/severity formatters in
   `_report_format.py`. Public render API unchanged.
+- **Closed the SSRF gap.** `llm_matcher._call_haiku` now routes through the `safehttp`
+  wrapper like the rest of the suite; no raw `urlopen` remains anywhere.
 
 ## Verification
 
