@@ -72,13 +72,14 @@ orchestrator on top. The dependency direction is acyclic. A flat module package
 was considered; the grouped layout was chosen so the architecture is legible from
 the directory tree rather than only from reading imports.
 
-## The USD↔BRL display is an example feature, not the product
+## The secondary-currency toggle is an optional, config-driven example
 
-The static report includes an optional client-side currency toggle (USD↔BRL) with
-a World-Bank-PPP orientation figure. It is kept as a self-contained demonstration
-of client-side currency re-denomination. It was left intact rather than generalized
-to arbitrary currency pairs (that would be unrequested new work) or removed (that
-would subtract a working feature).
+The static report can show an optional client-side USD↔secondary-currency toggle (with
+a World-Bank-PPP orientation figure) — a self-contained demonstration of client-side
+currency re-denomination, where the deterministic math stays in Python and only the
+*display* is re-denominated. The target currency, locale, and PPP factor are read from
+env at build time (`REPORT_SECONDARY_CURRENCY` / `_LOCALE` / `_PPP`); with none set, the
+report ships USD-only and the toggle is hidden, so the artifact carries no baked locale.
 
 ## Observability, sized to the system
 

@@ -8,13 +8,13 @@ below added four).
 
 ## Provenance / git history
 
-The copy was created with `git archive HEAD` from the private repo, so it starts from
-**clean, empty history** — none of the original commits (which contain personal detail
-in messages and files) are inherited. A scan of the original's full history found **no
-secrets, keys, tokens, or real-data snapshots ever committed**; the only sensitive
-content there was personal PII in commit messages and a few committed files, none of
-which crosses into this copy. The original's history is the owner's to rewrite or not;
-nothing was done to it here.
+This copy was seeded from the private repo with `git archive HEAD` — none of the
+original repo's commits are inherited. During preparation, early commits of *this* repo
+still carried personal comments in code (a name; locale-specific naming); the history
+was subsequently rewritten with `git filter-repo` to remove them and force-pushed. A
+scan of the full history (this repo and the original) found **no secrets, keys, tokens,
+or real-data snapshots ever committed** — the only personal content was identifying
+comments/strings, now removed from both the working tree and the git history.
 
 ## 1. PII and secrets removed
 
@@ -38,12 +38,13 @@ nothing was done to it here.
 The project was built around one person's specific goal. That framing was generalized to
 a configurable **"savings goal"**:
 
-- Renamed the `the secondary region` summary-dict key → `goal`, `project_the secondary region()` → `project_goal()`,
-  `monk_budget` → `discretionary_budget`; "the secondary region Fund" branding → neutral product
-  naming; example figures genericized.
-- The static report's **USD↔BRL currency toggle + PPP orientation was kept** as a
-  self-contained example of client-side currency re-denomination (removing a working
-  feature, or generalizing it to arbitrary currencies, was out of scope). See DECISIONS.
+- Renamed the personal-goal summary-dict key → `goal` and `project_goal()`,
+  `monk_budget` → `discretionary_budget`, and the personal "Fund" branding → neutral
+  product naming; example figures genericized.
+- The static report's secondary-currency toggle was later **genericized** (§10): the
+  target currency/locale/PPP are config-driven (env `REPORT_SECONDARY_*`), defaulting to
+  USD-only so the artifact carries no baked locale, with all locale-specific naming
+  removed. See DECISIONS.
 
 ## 3. Packaging and structure
 
