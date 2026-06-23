@@ -128,12 +128,32 @@ python -m bank_mcp.report.build_site --balance 1200 --txns path/to/transactions.
 # writes ./site/  (index.html + report.html + assets)
 ```
 
-## Using it with real data
+## Getting it working with your own bank
 
-See [docs/SETUP.md](docs/SETUP.md). In short: copy the `examples/*.example.*`
-templates to real filenames, point the loaders at them, and connect a bank via
-Plaid / a bank-mcp subprocess fork (transport lives in `ingest/`). Real data
-files are gitignored by default.
+The demo above is the whole pipeline on synthetic data — it's complete on its own, so
+you can evaluate everything without connecting anything. Pointing it at a **real** bank
+is a deliberate, one-time setup step (there's no interactive prompt; it's config-driven),
+and all real-data files are **gitignored** so nothing real is ever committed.
+
+```bash
+# 1. Copy the templates and fill them in
+cp examples/rules.example.md          rules.md
+cp examples/obligations.example.json  obligations.json
+cp examples/plaid_items.example.json  plaid_items.json
+
+# 2. Connect a bank (pick one transport — both live in src/bank_mcp/ingest/):
+#    a) direct Plaid — mint an access token for a bank Item, then set PLAID_ACCESS_TOKEN
+python -m bank_mcp.ingest.plaid_link      # one-time; prints a token to store in env/Keychain
+#    b) or a bank-mcp subprocess fork, which reads its own ~/.bank-mcp/config.json
+
+# 3. Run the live sync + analysis (non-interactive; suitable for cron/launchd)
+python -m bank_mcp.ingest.sync --status   # show connection + sync state first
+python -m bank_mcp.ingest.sync --monthly --balance 1200
+```
+
+Credentials resolve **env var → macOS Keychain** (`PLAID_*`, `ANTHROPIC_API_KEY`,
+`GMAIL_*`) — nothing is hardcoded. Full details, including the optional auth-gated
+static-site deploy, are in [docs/SETUP.md](docs/SETUP.md).
 
 ## Docs
 
