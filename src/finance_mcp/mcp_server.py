@@ -13,7 +13,9 @@ usable with no real financial data. Point `build_digest`/analytics at a real SQL
 DB or transactions file via tool arguments.
 """
 import json
+import sqlite3
 import sys
+from typing import Any, Optional
 
 from finance_mcp import __version__, demo
 from finance_mcp.store import analytics, db
@@ -60,14 +62,14 @@ TOOLS = [
 ]
 
 
-def _demo_conn():
+def _demo_conn() -> sqlite3.Connection:
     conn = db.connect(":memory:")
     db.init_schema(conn)
     db.upsert_transactions(conn, demo.generate())
     return conn
 
 
-def _call_tool(name, args):
+def _call_tool(name: str, args: Optional[dict]) -> str:
     """Run a tool, returning text. Raises ValueError on an unknown tool."""
     args = args or {}
     if name == "build_digest":
@@ -101,7 +103,7 @@ def _call_tool(name, args):
 # ---------------------------------------------------------------- JSON-RPC layer
 
 
-def handle(request):
+def handle(request: dict) -> Optional[dict]:
     """Map one JSON-RPC request dict to a response dict (or None for a notification)."""
     method = request.get("method")
     rid = request.get("id")
@@ -120,7 +122,7 @@ def handle(request):
     if method == "tools/list":
         return _ok(rid, {"tools": TOOLS})
     if method == "tools/call":
-        name = params.get("name")
+        name = str(params.get("name") or "")
         try:
             text = _call_tool(name, params.get("arguments"))
             return _ok(rid, {"content": [{"type": "text", "text": text}], "isError": False})
@@ -129,15 +131,15 @@ def handle(request):
     return _err(rid, -32601, f"method not found: {method}")
 
 
-def _ok(rid, result):
+def _ok(rid: Any, result: dict) -> dict:
     return {"jsonrpc": "2.0", "id": rid, "result": result}
 
 
-def _err(rid, code, message):
+def _err(rid: Any, code: int, message: str) -> dict:
     return {"jsonrpc": "2.0", "id": rid, "error": {"code": code, "message": message}}
 
 
-def serve_stdio(stdin=None, stdout=None):
+def serve_stdio(stdin: Any = None, stdout: Any = None) -> None:
     """Read newline-delimited JSON-RPC messages from stdin, write responses to stdout."""
     stdin = stdin or sys.stdin
     stdout = stdout or sys.stdout
@@ -157,7 +159,7 @@ def serve_stdio(stdin=None, stdout=None):
             stdout.flush()
 
 
-def main():
+def main() -> None:
     serve_stdio()
 
 

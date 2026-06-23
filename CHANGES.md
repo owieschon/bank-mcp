@@ -123,6 +123,9 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
   drifting copies); documented why the two recurring detectors intentionally differ.
 - **Trimmed speculative schema** — dropped the unused `envelopes` table and the
   always-NULL `category_human` column.
+- **Typed core + mypy gate.** `money.py`, `store/analytics.py`, and `mcp_server.py` are
+  type-annotated and checked by `mypy` in CI — a typed core that expands outward (the
+  engines are not yet typed).
 
 ## Verification
 

@@ -13,11 +13,14 @@ digest; the exact-integer guarantee is at the storage/aggregation layer, which i
 where unbounded float accumulation would otherwise occur.)
 """
 from decimal import Decimal, ROUND_HALF_UP
+from typing import Union
+
+Number = Union[int, float, str, Decimal]
 
 _CENT = Decimal("0.01")
 
 
-def to_cents(value):
+def to_cents(value: Number) -> int:
     """Round a dollar amount (float / int / str / Decimal) to exact integer cents.
 
     Uses Decimal half-up rounding via str() so the binary float is interpreted at the
@@ -26,12 +29,12 @@ def to_cents(value):
     return int((Decimal(str(value)) * 100).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def from_cents(cents):
+def from_cents(cents: int) -> float:
     """Integer cents -> dollar float (for JSON / display)."""
     return cents / 100.0
 
 
-def fmt(value):
+def fmt(value: Number) -> str:
     """Canonical money string: $1,234.56 / -$1,234.56 (sign before the symbol).
 
     Accepts dollars as float/int/Decimal. Use `fmt(from_cents(c))` for integer cents.

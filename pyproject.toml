@@ -15,7 +15,7 @@ dependencies = []
 dynamic = ["version"]
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff"]
+dev = ["pytest", "ruff", "mypy"]
 
 [project.scripts]
 finance-mcp = "finance_mcp.__main__:main"
@@ -38,6 +38,19 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.mypy]
+# A typed core with a passing gate, expanding outward (the engines are not yet typed).
+# Checks these modules; imported-but-untyped modules are followed for types but not
+# reported on, so the gate stays green while typing spreads.
+python_version = "3.10"
+files = [
+    "src/finance_mcp/money.py",
+    "src/finance_mcp/store/analytics.py",
+    "src/finance_mcp/mcp_server.py",
+]
+follow_imports = "silent"
+ignore_missing_imports = true
 
 [tool.ruff.lint]
 # Correctness-focused: pyflakes (unused/undefined/real errors) + syntax errors.

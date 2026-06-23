@@ -14,18 +14,20 @@ import argparse
 import os
 import re
 import sqlite3
+from typing import Any, Optional
 
 from finance_mcp.store import db
 
+Row = dict[str, Any]
 _QUERIES_PATH = os.path.join(os.path.dirname(__file__), "queries.sql")
 
 
-def _load_queries(path=_QUERIES_PATH):
+def _load_queries(path: str = _QUERIES_PATH) -> dict[str, str]:
     """Parse queries.sql into {name: sql}, split on `-- name: <name>` markers."""
     text = open(path, encoding="utf-8").read()
-    blocks = {}
-    name = None
-    buf = []
+    blocks: dict[str, str] = {}
+    name: Optional[str] = None
+    buf: list[str] = []
     for line in text.splitlines():
         m = re.match(r"--\s*name:\s*(\w+)\s*$", line)
         if m:
@@ -42,27 +44,28 @@ def _load_queries(path=_QUERIES_PATH):
 _QUERIES = _load_queries()
 
 
-def _rows(conn, sql, params):
+def _rows(conn: sqlite3.Connection, sql: str, params: dict) -> list[Row]:
     conn.row_factory = sqlite3.Row
     return [dict(r) for r in conn.execute(sql, params)]
 
 
-def monthly_cashflow(conn, owner=None):
+def monthly_cashflow(conn: sqlite3.Connection, owner: Optional[str] = None) -> list[Row]:
     """Per-month income/spend/net with a running net and month-over-month change."""
     return _rows(conn, _QUERIES["monthly_cashflow"], {"owner": owner})
 
 
-def category_breakdown(conn, owner=None):
+def category_breakdown(conn: sqlite3.Connection, owner: Optional[str] = None) -> list[Row]:
     """Spend per category with each category's share of total spend."""
     return _rows(conn, _QUERIES["category_breakdown"], {"owner": owner})
 
 
-def top_merchants(conn, owner=None, limit=10):
+def top_merchants(conn: sqlite3.Connection, owner: Optional[str] = None,
+                  limit: int = 10) -> list[Row]:
     """The top `limit` merchants by total spend, ranked."""
     return _rows(conn, _QUERIES["top_merchants"], {"owner": owner, "limit": limit})
 
 
-def _print_table(title, rows):
+def _print_table(title: str, rows: list[Row]) -> None:
     print(f"\n## {title}")
     if not rows:
         print("(no rows)")
@@ -75,7 +78,7 @@ def _print_table(title, rows):
         print("  ".join(str(r[c]).ljust(widths[c]) for c in cols))
 
 
-def _seed_demo_conn():
+def _seed_demo_conn() -> sqlite3.Connection:
     from finance_mcp import demo
     conn = db.connect(":memory:")
     db.init_schema(conn)
@@ -83,7 +86,7 @@ def _seed_demo_conn():
     return conn
 
 
-def main(argv=None):
+def main(argv: Optional[list[str]] = None) -> None:
     ap = argparse.ArgumentParser(description="SQL analytics over the transactions store")
     ap.add_argument("--db", default=None, help="SQLite file (default: in-memory synthetic demo data)")
     ap.add_argument("--owner", default=None, help="filter to one owner (default: all)")

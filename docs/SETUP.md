@@ -31,8 +31,9 @@ and is also the source of the test fixture (`tests/fixtures/transactions.sample.
 ## Tests and lint
 
 ```bash
-pytest -q                   # 296 tests
-ruff check src tests
+pytest -q                   # 303 tests
+ruff check src tests        # lint
+mypy                        # type-check the typed core (money, analytics, mcp_server)
 ```
 
 ## Build the static report site
