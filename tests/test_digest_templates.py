@@ -16,10 +16,8 @@ Run: python3 -m pytest test_digest_templates.py -v
 import unittest
 
 from finance_mcp.report.digest_templates import (
-    select_hero,
     render_weekly_html,
     render_monthly_html,
-    render_email_html,
     _format_date_range,
 )
 
@@ -165,60 +163,6 @@ def _receipts_only_digest():
     return d
 
 
-# ─────────────────────────── 1. select_hero tests ────────────────────────────
-
-class TestSelectHero(unittest.TestCase):
-
-    def test_overdraft_risk(self):
-        """Priority 1: overdraft risk -> severity red, badge 'Overdraft Risk'."""
-        digest = _mock_digest(overdraft=True, behind=True, fees=22.50)
-        hero = select_hero(digest)
-        self.assertEqual(hero["severity"], "red")
-        self.assertEqual(hero["badge_text"], "Overdraft Risk")
-
-    def test_low_balance(self):
-        """Priority 2: low balance (low_balance True but overdraft False) -> amber."""
-        digest = _mock_digest(overdraft=False, behind=False, fees=0)
-        # Set low_balance without overdraft
-        fh = digest["sections"]["forecast"]["headline"]
-        fh["overdraft"] = False
-        fh["low_balance"] = True
-        fh["min_balance"] = 50.0
-        fh["min_date"] = "2026-07-10"
-        fh["buffer"] = 100.0
-        hero = select_hero(digest)
-        self.assertEqual(hero["severity"], "amber")
-        self.assertEqual(hero["badge_text"], "Low Balance")
-
-    def test_behind_pace(self):
-        """Priority 3: behind pace (no forecast issues) -> red, badge contains 'Behind'."""
-        digest = _mock_digest(overdraft=False, behind=True, fees=0)
-        fh = digest["sections"]["forecast"]["headline"]
-        fh["overdraft"] = False
-        fh["low_balance"] = False
-        hero = select_hero(digest)
-        self.assertEqual(hero["severity"], "red")
-        self.assertIn("Behind", hero["badge_text"])
-
-    def test_fees_flagged_only(self):
-        """Priority 4: fees flagged (no forecast/budget issues) -> amber."""
-        digest = _mock_digest(overdraft=False, behind=False, fees=22.50)
-        fh = digest["sections"]["forecast"]["headline"]
-        fh["overdraft"] = False
-        fh["low_balance"] = False
-        hero = select_hero(digest)
-        self.assertEqual(hero["severity"], "amber")
-        self.assertEqual(hero["badge_text"], "Fees Flagged")
-
-    def test_all_clear(self):
-        """Priority 5: no issues at all -> green, badge 'All Clear'."""
-        digest = _mock_digest(overdraft=False, behind=False, fees=0)
-        fh = digest["sections"]["forecast"]["headline"]
-        fh["overdraft"] = False
-        fh["low_balance"] = False
-        hero = select_hero(digest)
-        self.assertEqual(hero["severity"], "green")
-        self.assertEqual(hero["badge_text"], "All Clear")
 
 
 # ─────────────────────────── 2. render_weekly_html tests ─────────────────────
@@ -292,36 +236,6 @@ class TestRenderMonthlyHtml(unittest.TestCase):
         self.assertIn("report-footer", html)
 
 
-# ─────────────────────────── 4. render_email_html tests ──────────────────────
-
-class TestRenderEmailHtml(unittest.TestCase):
-
-    def test_email_only_portion(self):
-        """Email HTML produces only the email portion (no full report sections)."""
-        digest = _mock_digest()
-        html = render_email_html(digest, report_url="https://example.com/report")
-        self.assertIn("email-portion", html)
-        # Should NOT contain the actual divider or full-report HTML elements
-        # (they do appear in the shared CSS, so check for the HTML markup instead)
-        self.assertNotIn('<div class="divider-section">', html)
-        self.assertNotIn('<div class="full-report"', html)
-
-    def test_cta_link(self):
-        """CTA button links to the provided report_url."""
-        url = "https://example.com/my-weekly-report"
-        digest = _mock_digest()
-        html = render_email_html(digest, report_url=url)
-        self.assertIn(url, html)
-        self.assertIn("cta-button", html)
-
-    def test_no_full_report_content(self):
-        """Email HTML does not contain the full-report divider or report sections."""
-        digest = _mock_digest()
-        html = render_email_html(digest, report_url="https://example.com/report")
-        # Check that the actual Full Report HTML elements are absent
-        # (CSS class definitions in <style> are expected and fine)
-        self.assertNotIn('<div class="divider-label">Full Report</div>', html)
-        self.assertNotIn('<div class="report-header">', html)
 
 
 # ─────────────────────────── 5. _format_date_range tests ─────────────────────

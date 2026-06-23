@@ -19,6 +19,7 @@ dev = ["pytest", "ruff"]
 
 [project.scripts]
 finance-mcp = "finance_mcp.__main__:main"
+finance-mcp-server = "finance_mcp.mcp_server:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "finance_mcp.__version__" }
