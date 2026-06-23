@@ -131,8 +131,23 @@ Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
 - **Closed the SSRF gap.** `llm_matcher._call_haiku` now routes through the `safehttp`
   wrapper like the rest of the suite; no raw `urlopen` remains anywhere.
 
+## 10. Independent-review polish
+
+After an independent cold review (graded A−, no blockers), closed its fix list:
+- Fixed stale docs (a duplicated ARCHITECTURE sentence; a dropped `category_human`
+  column still described); deleted the unused `fx_rates` table.
+- Made the SSRF guard real (blocks private/link-local/loopback/reserved IP literals incl.
+  the 169.254.169.254 metadata endpoint; pins `allowed_hosts` at the Anthropic call
+  sites) and rewrote its docstring to state the guarantee honestly.
+- `bank-mcp --help` prints usage to stdout (exit 0); CI matrix adds Python 3.13.
+- Added integration-layer tests (snapshot transport, multi-Item config, formatters).
+- Split the section builders out of `digest_templates.py` (1178 → 272 lines) into
+  `_report_sections.py`; removed a decorative CLI emoji.
+
 ## Verification
 
-`pip install -e ".[dev]"` succeeds; `ruff check src tests` is clean; **303 tests pass**
-via the installed package; `bank-mcp demo`, `bank-mcp analytics`, and `build_site`
-all produce output from synthetic data. PII/secret sweeps over the whole tree come back clean.
+`pip install -e ".[dev]"` succeeds; `ruff check src tests` and `mypy` are clean;
+**332 tests pass** (≥70% core coverage, gated in CI) via the installed package;
+`bank-mcp demo`, `bank-mcp analytics`, `bank-mcp-server`, and `build_site` all produce
+output from synthetic data. PII/secret sweeps over the whole tree (and full git
+history) come back clean.
