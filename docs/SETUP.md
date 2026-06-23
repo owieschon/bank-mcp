@@ -65,6 +65,17 @@ is ever committed. To wire it up:
 3. Credentials resolve **env var → macOS Keychain** (e.g. `ANTHROPIC_API_KEY`,
    `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `PLAID_*`). Nothing is hardcoded.
 
+## Optional: a second display currency in the report
+
+The static report can show a USD↔X toggle (with a PPP orientation figure). It's **off by
+default** — the report ships USD-only. To enable it, set these before `build_site`:
+
+```bash
+export REPORT_SECONDARY_CURRENCY=EUR    # any ISO code; build fetches the live USD→X rate
+export REPORT_SECONDARY_LOCALE=de-DE    # optional, default en-US (formatting)
+export REPORT_SECONDARY_PPP=0.7         # optional, World Bank PPP factor for the "lives like" note
+```
+
 ## Deploy (optional, author-local)
 
 `ops/deploy.sh` deploys the static site to a private, auth-gated Vercel project. It

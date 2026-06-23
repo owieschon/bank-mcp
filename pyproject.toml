@@ -11,6 +11,8 @@ license = { text = "MIT" }
 authors = [{ name = "bank.mcp contributors" }]
 keywords = ["personal-finance", "plaid", "budgeting", "cash-flow"]
 # Runtime dependencies: NONE. The suite runs on the Python standard library only.
+# (safehttp will use certifi's CA bundle *if* it's already importable, but never
+# requires it — it falls back to the stdlib default SSL context.)
 dependencies = []
 dynamic = ["version"]
 
