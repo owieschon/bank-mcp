@@ -246,5 +246,80 @@ class FetchBalanceTest(unittest.TestCase):
         self.assertIsNone(b["current"])
 
 
+def _plaid_txn(tid, amt, date="2026-06-01"):
+    return {"transaction_id": tid, "amount": amt, "date": date,
+            "name": "Merchant", "merchant_name": "Merchant"}
+
+
+class FetchTransactionsSyncTest(unittest.TestCase):
+    """The incremental /sync pager: pagination, cursor durability, removed handling."""
+
+    def test_single_page_normalizes_and_advances_cursor(self):
+        resp = {"added": [_plaid_txn("a", 5.0)], "modified": [], "removed": [],
+                "next_cursor": "C1", "has_more": False}
+        with mock.patch.object(plaid_bridge, "_call", return_value=resp):
+            out = plaid_bridge.fetch_transactions_sync(cursor="")
+        self.assertEqual(out["pages"], 1)
+        self.assertEqual(out["cursor"], "C1")
+        self.assertEqual(len(out["added"]), 1)
+        self.assertIn("rawData", out["added"][0])          # normalized shape
+        self.assertEqual(out["added"][0]["amount"], -5.0)  # Plaid debit -> signed
+
+    def test_paginates_until_has_more_false(self):
+        pages = [
+            {"added": [_plaid_txn("a", 1)], "removed": [], "next_cursor": "C1", "has_more": True},
+            {"added": [_plaid_txn("b", 2)], "removed": [{"transaction_id": "z"}, "y"],
+             "next_cursor": "C2", "has_more": False},
+        ]
+        with mock.patch.object(plaid_bridge, "_call", side_effect=pages):
+            out = plaid_bridge.fetch_transactions_sync(cursor="")
+        self.assertEqual(out["pages"], 2)
+        self.assertEqual(out["cursor"], "C2")
+        self.assertEqual(len(out["added"]), 2)
+        self.assertEqual(sorted(out["removed"]), ["y", "z"])  # dict-shaped AND bare id -> ids
+
+    def test_first_page_error_propagates(self):
+        with mock.patch.object(plaid_bridge, "_call",
+                               side_effect=plaid_bridge.BankMCPError("down")):
+            with self.assertRaises(plaid_bridge.BankMCPError):
+                plaid_bridge.fetch_transactions_sync(cursor="")
+
+    def test_partial_failure_keeps_prior_pages_and_holds_cursor(self):
+        seq = [
+            {"added": [_plaid_txn("a", 1)], "removed": [], "next_cursor": "C1", "has_more": True},
+            plaid_bridge.BankMCPError("page 2 down"),
+        ]
+        with mock.patch.object(plaid_bridge, "_call", side_effect=seq):
+            out = plaid_bridge.fetch_transactions_sync(cursor="")
+        self.assertEqual(out["pages"], 1)        # failed page not counted
+        self.assertEqual(out["cursor"], "C1")    # cursor not advanced past lost data
+        self.assertEqual(len(out["added"]), 1)
+
+
+class FetchTransactionsListTest(unittest.TestCase):
+    def test_dict_response_with_transactions_key(self):
+        resp = {"transactions": [_plaid_txn("a", 9.0)]}
+        with mock.patch.object(plaid_bridge, "_call", return_value=resp):
+            out = plaid_bridge.fetch_transactions_list(date_from="2026-05-01", date_to="2026-06-01")
+        self.assertEqual(len(out), 1)
+        self.assertIn("rawData", out[0])
+
+    def test_bare_list_response(self):
+        with mock.patch.object(plaid_bridge, "_call", return_value=[_plaid_txn("a", 9.0)]):
+            out = plaid_bridge.fetch_transactions_list()
+        self.assertEqual(len(out), 1)
+
+    def test_connection_id_threaded_into_params(self):
+        captured = {}
+
+        def fake_call(method, params, access_token=None):
+            captured.update(params)
+            return {"transactions": []}
+
+        with mock.patch.object(plaid_bridge, "_call", side_effect=fake_call):
+            plaid_bridge.fetch_transactions_list(connection_id="conn-2")
+        self.assertEqual(captured.get("connectionId"), "conn-2")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -17,7 +17,7 @@ It runs on the **Python standard library only — zero runtime dependencies.**
 
 > Status: a personal project, cleaned up as a work sample. All data in the repo is
 > synthetic (`examples/`, `src/bank_mcp/demo.py`); there is no real financial data
-> here. 332 tests pass (74% coverage of the testable core); `ruff` and `mypy` are clean;
+> here. 339 tests pass (75% coverage of the testable core); `ruff` and `mypy` are clean;
 > CI runs lint + types + tests on Python 3.10–3.13.
 
 ## What it produces
@@ -60,7 +60,7 @@ GTM-infrastructure work:
   against a Python recompute.
 - **Judgment about LLMs** — deterministic, tested math with the model confined to the
   edges (narrate/match/extract), plus an opt-in trace of every model call.
-- **Observability, tests, types** — structured logging, 332 tests, mypy, green CI.
+- **Observability, tests, types** — structured logging, 339 tests, mypy, green CI.
 
 ## Shape of the system
 
@@ -114,7 +114,7 @@ pip install -e ".[dev]"
 
 bank-mcp demo        # build + print a full digest from synthetic data
 bank-mcp analytics   # SQL reporting rollups (see src/bank_mcp/store/queries.sql)
-pytest -q               # 332 tests
+pytest -q               # 339 tests
 ruff check src tests    # lint
 mypy                    # type-check the package
 ```

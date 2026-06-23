@@ -148,7 +148,7 @@ After an independent cold review (graded A−, no blockers), closed its fix list
 ## Verification
 
 `pip install -e ".[dev]"` succeeds; `ruff check src tests` and `mypy` are clean;
-**332 tests pass** (≥70% core coverage, gated in CI) via the installed package;
+**339 tests pass** (≥70% core coverage, gated in CI) via the installed package;
 `bank-mcp demo`, `bank-mcp analytics`, `bank-mcp-server`, and `build_site` all produce
 output from synthetic data. PII/secret sweeps over the whole tree (and full git
 history) come back clean.
