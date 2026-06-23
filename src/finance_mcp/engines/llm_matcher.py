@@ -16,7 +16,7 @@ deterministic engines:
       extract {amount, merchant, date}. Only called when deterministic
       extraction returns None for amount.
 
-PRIVACY (load-bearing):
+Privacy:
   - llm_match_merchants sends ONLY merchant name strings to the model.
     No amounts, no dates, no account numbers, no transaction IDs.
   - llm_extract_receipt sends email text, but is only called on emails

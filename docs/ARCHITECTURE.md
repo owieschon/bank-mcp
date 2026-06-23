@@ -85,17 +85,17 @@ transaction dict verbatim**. Indexed on `(owner, date)`.
 The typed columns are a query/filter index; the engines' actual data source is the
 `raw` blob, reconstructed losslessly by `load_transactions_from_db()`. That keeps the
 engine output byte-identical whether it reads from JSON or the DB. `owner` /
-`currency` are first-class, so a second account holder or a second currency is just
+`currency` are columns, so a second account holder or a second currency is just
 more rows — no schema migration.
 
-## The LLM boundary (the load-bearing invariant)
+## The LLM boundary
 
 Only three things ever reach a prompt: a **compact summary dict** (for narration), a
 **merchant-name string** (for matching), or **receipt email text** (for extraction).
 Amounts, dates, ids, and account numbers paired with identity never do. The math is
 deterministic Python and unit-tested; a `--no-voice` run is correct at $0. This is
-enforced in spirit by the layering and checked directly by a test that deep-walks the
-assembled digest and fails if a raw-row shape leaks into it
+enforced in spirit by the layering and checked by a test that walks the
+assembled digest and fails if a raw-row shape appears in it
 (`tests/test_finance_agent.py::TestNoRawRows`).
 
 See [DECISIONS.md](DECISIONS.md) for why the storage/analysis split is shaped this way.

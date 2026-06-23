@@ -1,12 +1,11 @@
 # finance.mcp
 
 A personal-finance analysis suite that turns a stream of bank transactions into a
-single, glanceable digest — cash-flow forecast, savings-goal pace, spending
-breakdown, fee/duplicate detection, recurring-charge detection, and receipt
-reconciliation — and renders it as both a Markdown/email digest and an auth-gated
-static web report.
+single digest — cash-flow forecast, savings-goal pace, spending breakdown,
+fee/duplicate detection, recurring-charge detection, and receipt reconciliation —
+rendered as both a Markdown/email digest and an auth-gated static web report.
 
-The point of interest is the **boundary between math and the LLM**:
+The line it draws between the math and the LLM:
 
 > All financial math is plain, deterministic, unit-tested Python. A language model
 > is used only to *narrate* a compact summary, *match* merchant-name strings, and
@@ -92,7 +91,7 @@ files are gitignored by default.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, the SQLite
   schema, and the LLM boundary.
 - [docs/DECISIONS.md](docs/DECISIONS.md) — why SQLite (not Postgres), the SQL/Python
-  split, and what was deliberately left alone.
+  split, and what was left alone, and why.
 - [docs/SETUP.md](docs/SETUP.md) — install, run, test, and the deploy model.
 - [CHANGES.md](CHANGES.md) — what changed when this was prepared as a public work sample.
 

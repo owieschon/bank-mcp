@@ -9,7 +9,7 @@ the `raw` column, so `load_transactions_from_db()` reconstructs the exact dict t
 engines already consume — `subscription_creep`'s accessors work on it unchanged.
 The typed columns exist only for querying/filtering (owner, date, currency, ...).
 
-Multi-source / multi-currency / multi-owner are first-class from day one (the
+Multi-source / multi-currency / multi-owner are columns from the start (the
 `accounts.owner` + native `currency` columns), so a second account holder is just
 rows with owner='secondary'; engines filter by owner. No schema migration later.
 

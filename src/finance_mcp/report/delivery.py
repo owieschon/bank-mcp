@@ -24,7 +24,7 @@ canonical pair of side-effecting helpers instead of reaching into bs internals:
   money(x) -> str
       Canonical money formatter, re-exported for convenience.
 
-ARCHITECTURE RULE (load-bearing): narrate() serializes only the compact summary
+Design rule: narrate() serializes only the compact summary
 dict. If a raw transaction row ever lands in a model prompt, the build is wrong.
 """
 

@@ -3,8 +3,8 @@
 -- These are the *descriptive reporting* rollups (what the report shows): monthly
 -- cash flow, category mix, top merchants. They are intentionally expressed in SQL
 -- rather than Python because they are set-based aggregations over a relational
--- store — the right tool for the job. (The *forecasting* and recurring-cadence
--- logic is algorithmic and lives in tested Python; it is deliberately NOT here.)
+-- store, which is where SQL fits. (The *forecasting* and recurring-cadence
+-- logic is algorithmic and lives in tested Python, not here.)
 --
 -- Schema notes the queries rely on (see db.py):
 --   transactions(date TEXT 'YYYY-MM-DD', amount REAL  -- magnitude, always >= 0,
@@ -20,7 +20,7 @@
 -- Per-calendar-month income, spend, and net, plus a running cumulative net and the
 -- month-over-month change in net. The running total answers "where did the balance
 -- trend?" and the MoM delta answers "is it getting better or worse?" — both are
--- window functions over the month series, which is exactly what windows are for.
+-- window functions over the month series.
 WITH monthly AS (
     SELECT
         substr(date, 1, 7)                                            AS month,  -- 'YYYY-MM' bucket

@@ -86,7 +86,7 @@ called out here rather than slipped in silently.
 - A **~300-line dead-but-tested email renderer** in `report/digest_templates.py`
   (`render_email_html` / `_build_email_portion`) has no live caller, but it is covered by
   tests and interleaved with the live report renderer in a large module. Recommended as a
-  deliberate follow-up removal rather than a risky surgical edit here.
+  follow-up to remove on its own rather than a risky edit here.
 - **Two small duplicated detectors** (transfer-exclusion and recurring-stream detection,
   each in two places with slightly different thresholds) were left intact — unifying them
   would change outputs and belongs in its own change with its own tests.
@@ -97,8 +97,8 @@ called out here rather than slipped in silently.
 ## 8. Added a SQL analytics layer
 
 The descriptive reporting rollups are now expressed in SQL, both because it is the
-idiomatic tool for set-based analytics over a relational store and as a deliberate
-demonstration of SQL competency. `store/queries.sql` holds three readable, commented
+natural tool for set-based analytics over a relational store, and to show SQL
+competency. `store/queries.sql` holds three readable, commented
 CTE queries using window functions — monthly cash flow with a running total
 (`SUM() OVER`) and month-over-month delta (`LAG()`), category breakdown as a share of
 spend (ratio-to-total window), and top merchants ranked (`RANK()`). `store/analytics.py`

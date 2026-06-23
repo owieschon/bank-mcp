@@ -15,7 +15,7 @@ Tools run (deterministic cores, imported — never reimplemented):
   - fee_fraud_scan.scan                → avoidable fees + duplicate + suspect $
   - recurring.streams                  → active inflow/outflow recurring snapshot
 
-ARCHITECTURE RULE (load-bearing): all financial math is deterministic Python in
+Design rule: all financial math is deterministic Python in
 the imported cores. The model NEVER sees raw transactions — narration runs
 (delivery.narrate) over the combined COMPACT digest only. One cheap Haiku call,
 not one per tool. With --no-voice the run is fully deterministic at $0 tokens.

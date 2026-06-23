@@ -27,7 +27,7 @@ Four capabilities:
      disputes when a matching refund credit appears in bank transactions.
      Flags disputes with no response after 14 days.
 
-PRIVACY (load-bearing):
+Privacy:
   - LLM calls for email drafting send ONLY: merchant name, amount, date,
     dispute reason.  NEVER account numbers, bank name, full transaction IDs.
   - Bank dispute letter templates use [PLACEHOLDER] for sensitive fields.

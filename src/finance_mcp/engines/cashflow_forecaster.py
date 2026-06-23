@@ -6,7 +6,7 @@ Projects the checking balance DAY BY DAY across a horizon and flags the days it
 dips below a safety buffer or goes negative (overdraft), naming the charge(s)
 that tip it and the 'safe-by' date you must move money in by.
 
-ARCHITECTURE RULE (the whole point): all financial math is deterministic Python.
+Design rule: all financial math is deterministic Python.
 The model NEVER sees raw transactions — only a compact precomputed summary dict
 (delivery.narrate runs Haiku on that summary alone). If a raw transaction row
 ever lands in a model prompt, the build is wrong.

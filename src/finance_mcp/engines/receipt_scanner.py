@@ -14,7 +14,7 @@ DATA FLOW:
     → flag unmatched receipts (things not yet in bank data)
     → summary report
 
-ARCHITECTURE (load-bearing):
+Design rule:
   - Raw email content NEVER enters a model prompt.
   - All extraction is deterministic regex/pattern matching.
   - The model is only used (optionally, via delivery.narrate) to narrate the

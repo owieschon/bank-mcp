@@ -24,7 +24,7 @@ it surfaces three classes of recoverable / suspect money:
 It reports an "avoidable + suspect $ this window" headline: fees + duplicate
 second-charges (avoidable) plus alcohol/low-confidence spend (suspect).
 
-ARCHITECTURE (load-bearing): all money/date math is deterministic Python reusing
+Design rule: all money/date math is deterministic Python reusing
 subscription_creep + merchant_categorizer. The model NEVER sees raw transactions
 — only the compact summary dict, narrated via delivery.narrate. --no-voice spends
 $0 tokens.

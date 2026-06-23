@@ -9,7 +9,7 @@ rejected. (For *what changed* during portfolio preparation, see `../CHANGES.md`.
 This is a single-user, local tool: one file, a few thousand transactions, no
 concurrency, no network, no multi-tenant access. The standard-library `sqlite3`
 module covers it completely and keeps the project at **zero runtime
-dependencies** — a property worth protecting. PostgreSQL would add an external
+dependencies**. PostgreSQL would add an external
 service to run, a third-party driver to install, and operational overhead, in
 exchange for nothing this workload needs.
 
@@ -23,7 +23,7 @@ exchange for nothing this workload needs.
   top merchants by spend — live in `store/queries.sql` and are run by
   `store/analytics.py`. These are set-based aggregations over a relational store, so
   SQL (CTEs, `GROUP BY`, and window functions: `SUM() OVER`, `LAG()`, `RANK()`) is the
-  idiomatic, clearest tool, and the queries are written to be read top-to-bottom.
+  clearest way to express them, and the queries are written to read top to bottom.
 - **Python owns the algorithmic analysis** — median inter-charge-gap cadence
   classification, price-step detection, cash-flow projection / roll-forward,
   recurring-stream detection, dispute tracking. These are iterative, stateful
@@ -31,9 +31,8 @@ exchange for nothing this workload needs.
   the deterministic, unit-tested financial core, so they stay in Python where the
   test surface is single-language.
 
-So the boundary is principled: **set-based reporting → SQL; algorithmic forecasting →
-Python.** The dataset is small enough that SQL is chosen for clarity and idiom, not
-performance, and `test_analytics.py` cross-checks every query result against an
+So the boundary is: **set-based reporting → SQL; algorithmic forecasting → Python.**
+The dataset is small enough that SQL is chosen for clarity, not performance, and `test_analytics.py` cross-checks every query result against an
 independent Python recomputation so the two never silently diverge. (Window functions
 need SQLite ≥ 3.25, which every supported Python ships.)
 
@@ -68,7 +67,7 @@ would subtract a working feature).
   report path is `render_report_html` / `render_weekly_html` /
   `render_monthly_html`. It is still exercised by tests and is interleaved with
   the live `select_hero` / `render_report_html` code, so it was left intact rather
-  than risk the live renderer. Recommended as a deliberate follow-up removal.
+  than risk the live renderer. A good follow-up to remove on its own.
 - **Two small duplications** were left as-is to avoid changing behavior during a
   cleanup: transfer-detection and recurring-detection each exist in two places
   with slightly different thresholds. Unifying them would change outputs and

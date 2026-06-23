@@ -5,7 +5,7 @@ budget_scorer.py — weekly/monthly progress reports against the savings goal.
 Extends subscription_creep.py (imported, not duplicated). Reads ALL figures from
 rules.md at runtime — nothing financial is hardcoded.
 
-ARCHITECTURE RULE (the whole point):
+Design rule:
   The model NEVER sees raw transactions. Deterministic Python reduces the full
   transaction set to a compact summary dict (~1K tokens). ONLY that summary +
   the tone block are ever sent to a model. Raw rows never enter a prompt.
