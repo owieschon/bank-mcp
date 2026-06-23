@@ -21,10 +21,10 @@ nothing was done to it here.
   `dispute_agent`), a real bank name, hardcoded Vercel org/project IDs and account
   slug (`deploy.sh`), and real account balances (`build_site`, a test).
 - Removed **personal data encoded in logic**, not just in strings: a hardcoded
-  `"ohio ams" → "Ankle monitor"` category special-case and a magic
-  `abs(amount - 214.50)` obligation-matching branch keyed to a real recurring charge.
-  Both were author-specific and did not generalize; removing them reverts to the
-  generic behavior. (Noted because this is the one place PII removal nudged behavior.)
+  merchant-specific category special-case and a magic-number obligation-matching
+  branch, both keyed to the author's real transactions. Neither generalized; removing
+  them reverts to the generic behavior. (Noted because this is the one place PII
+  removal nudged behavior.)
 - Replaced real data files with synthetic templates under `examples/`
   (`rules`, `obligations`, `receipts`, `plaid_items`, `connection_owners`), and tightened
   `.gitignore` so the real filenames can never be committed.
