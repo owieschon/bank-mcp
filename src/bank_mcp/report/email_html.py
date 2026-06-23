@@ -134,20 +134,8 @@ def _html_progress_bar(pct, bar_color="#009C53"):
     )
 
 
-def render_digest_html(digest):
-    """Render the digest dict as a clean, modern HTML email string.
-
-    Produces an inline-styled, table-based layout suitable for all major email
-    clients.  Sections whose ``available`` flag is False get a muted
-    "Connect your bank" placeholder card; available sections render full data.
-    Uses delivery.money() for all dollar formatting.
-    """
-    mode_label = "WEEKLY" if digest.get("mode") == "weekly" else "MONTHLY"
-    window = digest.get("window", {})
-    as_of = digest.get("as_of", "")
-
-    sections_html = []
-
+def _email_balance_change(digest):
+    _out = []
     # ── What moved your balance (since the last update) ─────────────────────
     bc = digest.get("balance_change")
     if bc and bc.get("txns"):
@@ -168,8 +156,8 @@ def render_digest_html(digest):
                 f'font-size:13px;font-weight:600;color:{ac};font-family:\'SF Mono\',Consolas,monospace;">'
                 f'{_e(money(a))}</td></tr>'
             )
-        sections_html.append(_html_section_header("What moved your balance", "#1E50C8"))
-        sections_html.append(
+        _out.append(_html_section_header("What moved your balance", "#1E50C8"))
+        _out.append(
             '<tr><td bgcolor="#ffffff" style="padding:0 0 24px 0;background-color:#ffffff;">'
             '<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" '
             'style="background-color:#ffffff;border:1px solid #E7E8E3;border-radius:8px;">'
@@ -194,7 +182,11 @@ def render_digest_html(digest):
                'not yet itemized (the feed lags ~1–2 days).</div>')
             + '</td></tr></table></td></tr>'
         )
+    return "\n".join(_out)
 
+
+def _email_what_matters(digest):
+    _out = []
     # ── What matters (top-level flags) ──────────────────────────────────────
     flags = digest.get("flags", [])
     if flags:
@@ -208,7 +200,7 @@ def render_digest_html(digest):
             else:
                 color = "#009C53"
             flag_rows.append(_html_flag_item(_e(f), color))
-        sections_html.append(
+        _out.append(
             _html_section_header("What Matters", "#F0473E")
             + '<tr><td bgcolor="#ffffff" style="padding:0 0 24px 0;background-color:#ffffff;">'
             + '<table width="100%" cellpadding="0" cellspacing="0" border="0" '
@@ -218,10 +210,14 @@ def render_digest_html(digest):
             + "".join(flag_rows)
             + '</table></td></tr></table></td></tr>'
         )
+    return "\n".join(_out)
 
+
+def _email_forecast(digest):
+    _out = []
     # ── Cash-flow Forecast ──────────────────────────────────────────────────
     fc = digest.get("sections", {}).get("forecast", {})
-    sections_html.append(_html_section_header("Cash-flow Forecast", "#009C53"))
+    _out.append(_html_section_header("Cash-flow Forecast", "#009C53"))
     if fc.get("available", False):
         h = fc.get("headline", {})
         if h.get("overdraft"):
@@ -304,17 +300,21 @@ def render_digest_html(digest):
             card += '</table></div>'
 
         card += '</td></tr></table></td></tr>'
-        sections_html.append(card)
+        _out.append(card)
     else:
-        sections_html.append(_html_unavailable_card(
+        _out.append(_html_unavailable_card(
             "Cash-flow Forecast",
             "Real-time balance tracking, overdraft alerts, and "
             "upcoming obligation previews.",
         ))
+    return "\n".join(_out)
 
+
+def _email_savings_pace(digest):
+    _out = []
     # ── Savings Pace ─────────────────────────────────────────────────────────
     bud = digest.get("sections", {}).get("budget", {})
-    sections_html.append(_html_section_header("Savings Pace", "#009C53"))
+    _out.append(_html_section_header("Savings Pace", "#009C53"))
     bh = bud.get("headline", {})
     if bud.get("available", True) and bh.get("target"):
         status = bh.get("status", "on track")
@@ -412,17 +412,21 @@ def render_digest_html(digest):
             card += '</table>'
 
         card += '</td></tr></table></td></tr>'
-        sections_html.append(card)
+        _out.append(card)
     else:
-        sections_html.append(_html_unavailable_card(
+        _out.append(_html_unavailable_card(
             "Savings Pace",
             "Track your savings progress toward your target, "
             "with pace projections and spending rule enforcement.",
         ))
+    return "\n".join(_out)
 
+
+def _email_fee_fraud(digest):
+    _out = []
     # ── Fee / Fraud Scan ────────────────────────────────────────────────────
     fee = digest.get("sections", {}).get("fee_fraud", {})
-    sections_html.append(_html_section_header("Fee + Fraud Scan", "#F0473E"))
+    _out.append(_html_section_header("Fee + Fraud Scan", "#F0473E"))
     fh = fee.get("headline", {})
     if fee.get("available", True) and fh:
         avoidable = fh.get("avoidable", 0)
@@ -486,17 +490,21 @@ def render_digest_html(digest):
             '</table>'
             '</td></tr></table></td></tr>'
         )
-        sections_html.append(card)
+        _out.append(card)
     else:
-        sections_html.append(_html_unavailable_card(
+        _out.append(_html_unavailable_card(
             "Fee + Fraud Scan",
             "Detect bank fees, duplicate charges, and suspicious merchant "
             "activity in your transactions.",
         ))
+    return "\n".join(_out)
 
+
+def _email_recurring(digest):
+    _out = []
     # ── Recurring Snapshot ──────────────────────────────────────────────────
     rcur = digest.get("sections", {}).get("recurring", {})
-    sections_html.append(_html_section_header("Recurring Snapshot", "#009C53"))
+    _out.append(_html_section_header("Recurring Snapshot", "#009C53"))
     rch = rcur.get("headline", {})
     if rcur.get("available", True) and rch:
         net = rch.get("net_monthly_runrate", 0)
@@ -562,18 +570,22 @@ def render_digest_html(digest):
             card += '</table></div>'
 
         card += '</td></tr></table></td></tr>'
-        sections_html.append(card)
+        _out.append(card)
     else:
-        sections_html.append(_html_unavailable_card(
+        _out.append(_html_unavailable_card(
             "Recurring Snapshot",
             "See your active recurring income and expenses with "
             "monthly run-rate calculations.",
         ))
+    return "\n".join(_out)
 
+
+def _email_receipts(digest):
+    _out = []
     # ── Receipt Scan ────────────────────────────────────────────────────────
     rcpt = digest.get("sections", {}).get("receipts", {})
     rh = rcpt.get("headline", {})
-    sections_html.append(_html_section_header("Receipt Scan", "#009C53"))
+    _out.append(_html_section_header("Receipt Scan", "#009C53"))
     if rcpt.get("available", True) and rh.get("total_receipts", 0) > 0:
         card = (
             '<tr><td bgcolor="#ffffff" style="padding:0 0 24px 0;background-color:#ffffff;">'
@@ -674,15 +686,15 @@ def render_digest_html(digest):
             card += '</table></div>'
 
         card += '</td></tr></table></td></tr>'
-        sections_html.append(card)
+        _out.append(card)
     elif not rcpt.get("available", True):
-        sections_html.append(_html_unavailable_card(
+        _out.append(_html_unavailable_card(
             "Receipt Scan",
             "Automatically scan email receipts and reconcile them against "
             "your bank transactions.",
         ))
     else:
-        sections_html.append(
+        _out.append(
             '<tr><td bgcolor="#ffffff" style="padding:0 0 24px 0;background-color:#ffffff;">'
             '<table width="100%" cellpadding="0" cellspacing="0" border="0" '
             'bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #E7E8E3;border-radius:8px;">'
@@ -691,6 +703,30 @@ def render_digest_html(digest):
             'No receipts to report this period.'
             '</td></tr></table></td></tr>'
         )
+    return "\n".join(_out)
+
+
+def render_digest_html(digest):
+    """Render the digest dict as a clean, modern HTML email string.
+
+    Produces an inline-styled, table-based layout suitable for all major email
+    clients.  Sections whose ``available`` flag is False get a muted
+    "Connect your bank" placeholder card; available sections render full data.
+    Uses delivery.money() for all dollar formatting.
+    """
+    mode_label = "WEEKLY" if digest.get("mode") == "weekly" else "MONTHLY"
+    window = digest.get("window", {})
+    as_of = digest.get("as_of", "")
+
+    sections_html = [s for s in (
+        _email_balance_change(digest),
+        _email_what_matters(digest),
+        _email_forecast(digest),
+        _email_savings_pace(digest),
+        _email_fee_fraud(digest),
+        _email_recurring(digest),
+        _email_receipts(digest),
+    ) if s]
 
     # ── Assemble full email ─────────────────────────────────────────────────
     body_rows = "\n".join(sections_html)
