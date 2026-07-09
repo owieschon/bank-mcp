@@ -1,6 +1,6 @@
 # bank.mcp
 
-I wanted to read my own money — track how fast I was saving toward a cross-border move, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. So every binding number here is computed in plain, deterministic, integer-cents Python, and unit-tested. The model never touches it.
+I wanted to read my own money — track how fast I was saving toward my goal, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. So every binding number here is computed in plain, deterministic, integer-cents Python, and unit-tested. The model never touches it.
 
 What the LLM is allowed to do is narrow: narrate a finished summary, match two merchant-name strings, pull the amount out of a receipt email. That's the whole surface. **Raw transaction rows never enter a prompt** — no amounts-with-identity, no account numbers, no transaction ids. If there's no API key, or the model returns garbage, the deterministic result stands unchanged. `--no-voice` runs the entire pipeline at **zero tokens and no network**, and is fully correct. The model is an optional voice on top of an engine that already has the answer.
 
@@ -8,7 +8,7 @@ It's standard-library Python — `dependencies = []`. No ORM, no framework, no S
 
 ## What it does
 
-Turns a SQLite store of bank transactions into **one digest**: a cash-flow / overdraft forecast, savings-goal pace against a target and a move date, a spending breakdown, a fee + duplicate-charge scan, recurring-stream detection, and receipt reconciliation. One orchestrator (`finance_agent.build_digest`) reconciles receipts first, runs each engine, and collates a single ~1K-token summary — which is the *only* thing narration ever sees.
+Turns a SQLite store of bank transactions into **one digest**: a cash-flow / overdraft forecast, savings-goal pace against a target date, a spending breakdown, a fee + duplicate-charge scan, recurring-stream detection, and receipt reconciliation. One orchestrator (`finance_agent.build_digest`) reconciles receipts first, runs each engine, and collates a single ~1K-token summary — which is the *only* thing narration ever sees.
 
 ```
 bank-mcp demo        # builds + prints the digest from bundled synthetic data — no bank, no key, no network
