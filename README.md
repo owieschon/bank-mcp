@@ -1,7 +1,7 @@
 # bank.mcp
 
 <!-- clean-docs:purpose -->
-I wanted to read my own money — track how fast I was saving toward my goal, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. So every binding number here is computed in plain, deterministic, integer-cents Python, and unit-tested. The model never touches it. Read this page before changing or relying on bank.mcp so you can preserve its documented constraints and verify the result against the repository.
+I wanted to read my own money — track how fast I was saving toward my goal, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. Persisted and aggregated monetary values therefore use integer cents. Forecasting engines may use bounded float-dollar calculations rounded at defined boundaries; storage and SQL aggregation remain exact. The model never owns a binding result.
 <!-- clean-docs:end purpose -->
 
 

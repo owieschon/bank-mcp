@@ -1,7 +1,7 @@
 # Portfolio preparation — changes from the private original
 
 <!-- clean-docs:purpose -->
-This repo is a public work-sample copy of a private personal-finance project. This file records what changed and why, so the diff from the original is reviewable rather than mysterious. The behavior of the financial engines was **preserved throughout** — the test suite passed at every step (292 tests through the cleanup; 296 after the SQL analytics layer below added four). Read this page before changing or relying on Portfolio preparation — changes from the private original so you can preserve its documented constraints and verify the result against the repository.
+This repo is a public work-sample copy of a private personal-finance project. This file records what changed and why, so the diff from the original is reviewable rather than mysterious. The behavior of the financial engines was **preserved throughout** — the test suite passed at every step (292 tests through the cleanup; 296 after the SQL analytics layer below added four).
 <!-- clean-docs:end purpose -->
 <!-- clean-docs:allow doc-length reason="This ordered record stays in one file so readers can trace decisions and changes without crossing chronology boundaries" -->
 

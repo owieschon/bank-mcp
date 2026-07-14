@@ -1,7 +1,7 @@
 # Architecture
 
 <!-- clean-docs:purpose -->
-A layered pipeline with one canonical accessor at the base and one orchestrator on top. Data flows in one direction; the dependency graph is acyclic. Read this page before changing or relying on Architecture so you can preserve its documented constraints and verify the result against the repository.
+A layered pipeline with one canonical accessor at the base and one orchestrator on top. Data flows in one direction; the dependency graph is acyclic.
 <!-- clean-docs:end purpose -->
 <!-- clean-docs:allow section-length reason="This section keeps one tightly coupled procedure or contract together so readers can verify it without crossing section boundaries" -->
 
