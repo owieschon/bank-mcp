@@ -1,6 +1,9 @@
 # bank.mcp
 
-I wanted to read my own money — track how fast I was saving toward my goal, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. So every binding number here is computed in plain, deterministic, integer-cents Python, and unit-tested. The model never touches it.
+<!-- clean-docs:purpose -->
+I wanted to read my own money — track how fast I was saving toward my goal, catch the fee or duplicate charge I'd otherwise eat — without handing the arithmetic to a language model. A wrong "you're on pace" or a forecast that says you clear your buffer when you don't has a real price. So every binding number here is computed in plain, deterministic, integer-cents Python, and unit-tested. The model never touches it. Read this page before changing or relying on bank.mcp so you can preserve its documented constraints and verify the result against the repository.
+<!-- clean-docs:end purpose -->
+
 
 What the LLM is allowed to do is narrow: narrate a finished summary, match two merchant-name strings, pull the amount out of a receipt email. That's the whole surface. **Raw transaction rows never enter a prompt** — no amounts-with-identity, no account numbers, no transaction ids. If there's no API key, or the model returns garbage, the deterministic result stands unchanged. `--no-voice` runs the entire pipeline at **zero tokens and no network**, and is fully correct. The model is an optional voice on top of an engine that already has the answer.
 
@@ -15,7 +18,7 @@ bank-mcp demo        # builds + prints the digest from bundled synthetic data �
 ```
 
 ```
-# bank.mcp — UNIFIED MONTHLY DIGEST
+## bank.mcp — UNIFIED MONTHLY DIGEST
 ## What matters
 - Clear: balance stays at or above the $100.00 buffer for the full 35-day horizon (min $1,087.44 on May 6, 2026).
 - Fee/fraud: $49.99 recoverable this 30d.

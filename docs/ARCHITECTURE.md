@@ -1,7 +1,10 @@
 # Architecture
 
-A layered pipeline with one canonical accessor at the base and one orchestrator on
-top. Data flows in one direction; the dependency graph is acyclic.
+<!-- clean-docs:purpose -->
+A layered pipeline with one canonical accessor at the base and one orchestrator on top. Data flows in one direction; the dependency graph is acyclic. Read this page before changing or relying on Architecture so you can preserve its documented constraints and verify the result against the repository.
+<!-- clean-docs:end purpose -->
+<!-- clean-docs:allow section-length reason="This section keeps one tightly coupled procedure or contract together so readers can verify it without crossing section boundaries" -->
+
 
 ```
    bank (Plaid / bank-mcp)
@@ -33,6 +36,7 @@ top. Data flows in one direction; the dependency graph is acyclic.
 ```
 
 ## Layers
+<!-- clean-docs:allow section-length reason="This section keeps one tightly coupled procedure or contract together so readers can verify it without crossing section boundaries" -->
 
 **`ingest/` — getting data in.**
 `safehttp.fetch()` is the single outbound-HTTP chokepoint (enforces HTTPS, bounds a

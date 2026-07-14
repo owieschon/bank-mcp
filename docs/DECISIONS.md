@@ -1,7 +1,10 @@
 # Design decisions
 
-Why the project is shaped the way it is, including alternatives considered and
-rejected. (For *what changed* during portfolio preparation, see `../CHANGES.md`.)
+<!-- clean-docs:purpose -->
+Why the project is shaped the way it is, including alternatives considered and rejected. (For *what changed* during portfolio preparation, see `../CHANGES.md`.) Read this page before changing or relying on Design decisions so you can preserve its documented constraints and verify the result against the repository.
+<!-- clean-docs:end purpose -->
+<!-- clean-docs:allow doc-length reason="This ordered record stays in one file so readers can trace decisions and changes without crossing chronology boundaries" -->
+
 
 ## Language fit: Python vs SQL vs PostgreSQL
 

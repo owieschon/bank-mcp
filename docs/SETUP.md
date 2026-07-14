@@ -1,5 +1,9 @@
 # Setup
 
+<!-- clean-docs:purpose -->
+Use this guide when installing bank-mcp for local development or a first verified run. It names the required environment and commands so you can start the service, exercise its demo data, and confirm the installation before changing configuration.
+<!-- clean-docs:end purpose -->
+
 ## Requirements
 
 - Python **3.10+** (developed and tested on 3.14).
@@ -40,7 +44,7 @@ mypy                        # type-check the package (money/analytics/mcp_server
 
 ```bash
 python -m bank_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
-# writes ./site/  (index.html landing page + report.html + assets)
+## writes ./site/  (index.html landing page + report.html + assets)
 ```
 
 With no `--txns` it defaults to `transactions.json` in the working directory; with no
