@@ -8,12 +8,14 @@ keeps the project dependency-free.
 
 Run:  python -m bank_mcp.mcp_server      (or the `bank-mcp-server` console script)
 
-By default the tools run against the bundled synthetic demo data, so the server is
-usable with no real financial data. Point `build_digest`/analytics at a real SQLite
-DB or transactions file via tool arguments.
+The four public tools always run against the bundled synthetic demo data, so the
+server is usable with no real financial data. Their schemas accept filters and
+presentation options, not database or transaction-file paths. Real SQLite analysis
+is a separate local CLI path (`bank-mcp analytics --db PATH`).
 """
 import json
 import logging
+import math
 import sqlite3
 import sys
 from typing import Any, Optional
@@ -26,7 +28,7 @@ PROTOCOL_VERSION = "2024-11-05"
 
 # ---------------------------------------------------------------- tool registry
 
-TOOLS = [
+TOOLS: list[dict[str, Any]] = [
     {
         "name": "build_digest",
         "description": "Build the full personal-finance digest (cash-flow forecast, "
@@ -34,6 +36,7 @@ TOOLS = [
                        "from synthetic demo data. Returns the Markdown digest.",
         "inputSchema": {
             "type": "object",
+            "additionalProperties": False,
             "properties": {
                 "balance": {"type": "number", "description": "starting balance for the forecast"},
                 "mode": {"type": "string", "enum": ["weekly", "monthly"], "default": "monthly"},
@@ -42,26 +45,83 @@ TOOLS = [
     },
     {
         "name": "monthly_cashflow",
-        "description": "SQL rollup: per-month income, spend, net, running net, and "
-                       "month-over-month change (over the demo store).",
-        "inputSchema": {"type": "object", "properties": {
+        "description": "SQL rollup over the synthetic demo store: per-month income, "
+                       "spend, net, running net, and month-over-month change.",
+        "inputSchema": {"type": "object", "additionalProperties": False, "properties": {
             "owner": {"type": "string", "description": "filter to one account owner"}}},
     },
     {
         "name": "category_breakdown",
-        "description": "SQL rollup: spend per category with each category's share of total spend.",
-        "inputSchema": {"type": "object", "properties": {
+        "description": "SQL rollup over the synthetic demo store: spend per category with each "
+                       "category's share of total spend.",
+        "inputSchema": {"type": "object", "additionalProperties": False, "properties": {
             "owner": {"type": "string"}}},
     },
     {
         "name": "top_merchants",
-        "description": "SQL rollup: the top merchants by total spend, ranked.",
-        "inputSchema": {"type": "object", "properties": {
+        "description": "SQL rollup over the synthetic demo store: top merchants by total "
+                       "spend, ranked.",
+        "inputSchema": {"type": "object", "additionalProperties": False, "properties": {
             "owner": {"type": "string"},
-            "limit": {"type": "integer", "default": 10},
+            "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 10},
         }},
     },
 ]
+
+TOOLS_BY_NAME: dict[str, dict[str, Any]] = {tool["name"]: tool for tool in TOOLS}
+
+
+def _validate_schema_value(value: Any, schema: dict, path: str) -> None:
+    """Validate the JSON Schema subset published by this server."""
+    expected = schema.get("type")
+    if not isinstance(expected, str):
+        raise ValueError(f"unsupported input schema type at {path}: {expected}")
+    valid_type = {
+        "object": lambda item: isinstance(item, dict),
+        "string": lambda item: isinstance(item, str),
+        "number": lambda item: isinstance(item, (int, float)) and not isinstance(item, bool),
+        "integer": lambda item: isinstance(item, int) and not isinstance(item, bool),
+        "boolean": lambda item: isinstance(item, bool),
+    }.get(expected)
+    if valid_type is None:
+        raise ValueError(f"unsupported input schema type at {path}: {expected}")
+    if not valid_type(value):
+        raise ValueError(f"{path} must be {expected}")
+    if expected in {"number", "integer"} and not math.isfinite(value):
+        raise ValueError(f"{path} must be finite")
+
+    if expected == "object":
+        properties = schema.get("properties", {})
+        required = schema.get("required", [])
+        missing = [name for name in required if name not in value]
+        if missing:
+            raise ValueError(f"{path} missing required field(s): {', '.join(missing)}")
+        if schema.get("additionalProperties") is False:
+            unknown = sorted(set(value) - set(properties))
+            if unknown:
+                raise ValueError(f"{path} has unknown field(s): {', '.join(unknown)}")
+        for name, item in value.items():
+            property_schema = properties.get(name)
+            if property_schema is not None:
+                _validate_schema_value(item, property_schema, f"{path}.{name}")
+
+    if "enum" in schema and value not in schema["enum"]:
+        allowed = ", ".join(repr(item) for item in schema["enum"])
+        raise ValueError(f"{path} must be one of: {allowed}")
+    if expected in {"number", "integer"}:
+        if "minimum" in schema and value < schema["minimum"]:
+            raise ValueError(f"{path} must be at least {schema['minimum']}")
+        if "maximum" in schema and value > schema["maximum"]:
+            raise ValueError(f"{path} must be at most {schema['maximum']}")
+
+
+def _validate_tool_arguments(name: str, arguments: Any) -> dict:
+    """Return validated tool arguments or fail before dispatch."""
+    tool = TOOLS_BY_NAME.get(name)
+    if tool is None:
+        raise ValueError(f"unknown tool: {name}")
+    _validate_schema_value(arguments, tool["inputSchema"], "arguments")
+    return arguments
 
 
 def _demo_conn() -> sqlite3.Connection:
@@ -124,13 +184,19 @@ def handle(request: dict) -> Optional[dict]:
     if method == "tools/list":
         return _ok(rid, {"tools": TOOLS})
     if method == "tools/call":
-        name = str(params.get("name") or "")
-        log.info("tool call: %s", name)
         try:
-            text = _call_tool(name, params.get("arguments"))
+            if not isinstance(params, dict):
+                raise ValueError("tools/call params must be an object")
+            name = params.get("name")
+            if not isinstance(name, str) or not name:
+                raise ValueError("tools/call name must be a non-empty string")
+            arguments = params["arguments"] if "arguments" in params else {}
+            validated = _validate_tool_arguments(name, arguments)
+            log.info("tool call: %s", name)
+            text = _call_tool(name, validated)
             return _ok(rid, {"content": [{"type": "text", "text": text}], "isError": False})
         except Exception as e:  # surface tool errors as an MCP tool result, not a transport error
-            log.warning("tool %s failed: %s", name, e)
+            log.warning("tool call failed: %s", e)
             return _ok(rid, {"content": [{"type": "text", "text": f"error: {e}"}], "isError": True})
     return _err(rid, -32601, f"method not found: {method}")
 

@@ -1,10 +1,7 @@
 # Design decisions
 
-<!-- clean-docs:purpose -->
-Why the project is shaped the way it is, including alternatives considered and rejected. (For *what changed* during portfolio preparation, see `../CHANGES.md`.)
-<!-- clean-docs:end purpose -->
-<!-- clean-docs:allow doc-length reason="This ordered record stays in one file so readers can trace decisions and changes without crossing chronology boundaries" -->
-
+Why the project is shaped the way it is, including alternatives considered and
+rejected. Current unreleased changes live in [`CHANGES.md`](../CHANGES.md).
 
 ## Language fit: Python vs SQL vs PostgreSQL
 
@@ -41,11 +38,14 @@ need SQLite ≥ 3.25, which every supported Python ships.)
 
 ## Deterministic math, LLM only at the edges
 
-Financial figures are computed by plain, unit-tested Python. The LLM is used only
-to (a) narrate a compact summary dict, (b) match merchant-name strings, and
-(c) extract text from receipt emails. **Raw transaction rows never enter a
-prompt.** A `--no-voice` run is fully correct at zero tokens and no network. This
-is the core design premise and the reason the analysis is auditable.
+Stored transaction values, aggregation, forecasts, and anomaly classifications are computed by
+plain, unit-tested Python. Optional model calls narrate a compact summary, match merchant names,
+extract candidate fields from receipt email text, propose a merchant contact from its name, or
+draft refund prose from typed dispute facts. Current call sites pass no raw bank rows, free-form
+evidence, or dedicated account-number or transaction-ID fields to refund drafting. Model-extracted fields and generated addresses or prose are
+untrusted inputs. Analysis over local data remains complete without a model call; `--no-voice`
+disables narration but does not disable the bank-ingestion transport or separately requested draft
+and extraction paths.
 
 ## Money is stored and aggregated as integer cents
 
@@ -62,7 +62,7 @@ unbounded running total over thousands of rows would otherwise accumulate float 
 so that is where exactness matters most. The reporting engines then compute display
 figures in float rounded to the cent at each step (bounded, unit-tested). This is a
 deliberate, proportionate choice for a **reporting/digest tool**: it is not a
-double-entry ledger, so threading `Decimal` through all six engines (and round-tripping
+double-entry ledger, so threading `Decimal` through every reporting engine (and round-tripping
 it through the JSON the digest is serialized to) would add fragility and ceremony for
 no behavior change. The penny-perfect guarantee is placed exactly where penny drift
 could actually occur.
@@ -93,7 +93,7 @@ report ships USD-only and the toggle is hidden, so the artifact carries no baked
   live-balance fetch failure) now log warnings, so a degraded run is visible. No secrets
   or raw amounts are logged.
 - **LLM-call trace** (`trace_llm`, opt-in via `BANK_MCP_LLM_TRACE`): every model call
-  (narrate / merchant-match / receipt-extract) records purpose, model, sizes, latency,
+  (narrate / merchant-match / receipt-extract / merchant-contact / refund-draft) records purpose, model, sizes, latency,
   and outcome to JSONL — metadata only by default, full prompt/response transcript only
   with `BANK_MCP_LLM_TRACE_FULL=1`. This makes a model failure diagnosable after the fact
   and lets you audit exactly what reached the model — which is the privacy thesis.
@@ -110,12 +110,9 @@ over-engineering this project otherwise avoids.
 
 ## Status glyphs in the digest are intentional UX
 
-The digest uses 🟢/🔴 for forecast status and ✅/⚠️/🔻 for rule scoring. These are in the
-human-facing report (email + terminal), the same way CI dashboards and GitHub checks use
-status icons — they aren't decoration sprinkled through the codebase. The engineering
-rigor lives in the data/LLM boundary and the tests, not in avoiding glyphs; removing them
-would make the report worse to read. (A reviewer who pattern-matches emoji to machine
-generation is welcome to flag it — hence this note.)
+The digest uses 🟢/🔴 for forecast status and ✅/⚠️/🔻 for rule scoring. These glyphs appear
+only in the human-facing email and terminal report, where they repeat the adjacent text
+status. The underlying result does not depend on color or glyph recognition.
 
 ## Two detectors that intentionally differ (not duplication)
 
@@ -125,5 +122,4 @@ named bands for the recurring-spend report; the latter is a stricter low-varianc
 (coefficient of variation ≤ 0.5) tuned for fee detection, where a false-positive
 "recurring fee" is worse than missing an irregular one. The shared *vocabulary* (the
 transfer/P2P merchant lists) was consolidated into `subscription_creep`; the two
-recurrence policies are kept distinct because they answer different questions. This is a
-design choice, not drift — flagged so a reviewer doesn't read it as copy-paste.
+recurrence policies are kept distinct because they answer different questions.

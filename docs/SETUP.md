@@ -1,9 +1,5 @@
 # Setup
 
-<!-- clean-docs:purpose -->
-Use this guide when installing bank-mcp for local development or a first verified run. It names the required environment and commands so you can start the service, exercise its demo data, and confirm the installation before changing configuration.
-<!-- clean-docs:end purpose -->
-
 ## Requirements
 
 - Python **3.10+** (developed and tested on 3.14).
@@ -35,7 +31,7 @@ and is also the source of the test fixture (`tests/fixtures/transactions.sample.
 ## Tests and lint
 
 ```bash
-pytest -q                   # 339 tests
+pytest -q                   # test suite
 ruff check src tests        # lint
 mypy                        # type-check the package (money/analytics/mcp_server fully annotated)
 ```
@@ -44,9 +40,10 @@ mypy                        # type-check the package (money/analytics/mcp_server
 
 ```bash
 python -m bank_mcp.report.build_site --balance 1200 --txns path/to/transactions.json
-## writes ./site/  (index.html landing page + report.html + assets)
+# writes ./site/  (index.html landing page + report.html + assets)
 ```
 
+<!-- sourcebound:allow-inline-document target="rules.md" reason="This is an operator-created local configuration; examples/rules.example.md is the committed template" -->
 With no `--txns` it defaults to `transactions.json` in the working directory; with no
 `rules.md` present it falls back to the bundled example rules, so a build always runs.
 

@@ -48,7 +48,7 @@ def configure(level: str | None = None) -> None:
 
 def trace_llm(purpose: str, model: str, system: str, user: str,
               response, ok: bool, latency_ms: float) -> None:
-    """Observability for the few model calls (narrate / merchant-match / receipt-extract).
+    """Observability for bounded model calls.
 
     Always logs a metadata line (no content) so a failure is diagnosable. If
     BANK_MCP_LLM_TRACE is set to a file path, also appends one JSON record per call —

@@ -8,6 +8,7 @@ results, error handling, and a full newline-delimited stdio round-trip.
 import io
 import json
 import unittest
+from unittest.mock import patch
 
 from bank_mcp import mcp_server as srv
 
@@ -37,6 +38,64 @@ class HandleTest(unittest.TestCase):
         for t in resp["result"]["tools"]:
             self.assertIn("description", t)
             self.assertEqual(t["inputSchema"]["type"], "object")
+
+    def test_public_tool_schemas_are_synthetic_only(self):
+        expected_properties = {
+            "build_digest": {"balance", "mode"},
+            "monthly_cashflow": {"owner"},
+            "category_breakdown": {"owner"},
+            "top_merchants": {"owner", "limit"},
+        }
+        for tool in srv.TOOLS:
+            schema = tool["inputSchema"]
+            self.assertFalse(schema["additionalProperties"])
+            self.assertEqual(set(schema["properties"]), expected_properties[tool["name"]])
+            self.assertIn("synthetic", tool["description"].lower())
+            self.assertTrue(
+                {"db", "database", "transactions", "file", "path"}.isdisjoint(
+                    schema["properties"]
+                )
+            )
+        limit = srv.TOOLS_BY_NAME["top_merchants"]["inputSchema"]["properties"]["limit"]
+        self.assertEqual((limit["minimum"], limit["maximum"]), (1, 100))
+
+    def test_invalid_arguments_fail_before_tool_dispatch(self):
+        cases = [
+            ("nope", {}, "unknown tool"),
+            ("build_digest", None, "arguments must be object"),
+            ("build_digest", [], "arguments must be object"),
+            ("build_digest", {"database": "private.sqlite"}, "unknown field"),
+            ("build_digest", {"balance": True}, "balance must be number"),
+            ("build_digest", {"balance": float("nan")}, "balance must be finite"),
+            ("build_digest", {"balance": float("inf")}, "balance must be finite"),
+            ("build_digest", {"mode": "quarterly"}, "mode must be one of"),
+            ("monthly_cashflow", {"owner": 7}, "owner must be string"),
+            ("top_merchants", {"limit": True}, "limit must be integer"),
+            ("top_merchants", {"limit": 0}, "limit must be at least 1"),
+            ("top_merchants", {"limit": 101}, "limit must be at most 100"),
+        ]
+        with patch.object(srv, "_call_tool") as call_tool:
+            for name, arguments, message in cases:
+                with self.subTest(name=name, arguments=arguments):
+                    resp = srv.handle(
+                        _req("tools/call", {"name": name, "arguments": arguments})
+                    )
+                    self.assertTrue(resp["result"]["isError"])
+                    self.assertIn(message, resp["result"]["content"][0]["text"])
+            call_tool.assert_not_called()
+
+    def test_required_fields_are_enforced_by_the_shared_validator(self):
+        with self.assertRaisesRegex(ValueError, "missing required field.*owner"):
+            srv._validate_schema_value(
+                {},
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["owner"],
+                    "properties": {"owner": {"type": "string"}},
+                },
+                "arguments",
+            )
 
     def test_call_build_digest(self):
         resp = srv.handle(_req("tools/call", {"name": "build_digest", "arguments": {"balance": 1500}}))

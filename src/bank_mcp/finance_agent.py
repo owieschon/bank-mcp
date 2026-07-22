@@ -450,10 +450,10 @@ def _dispute_flags(result):
     ne = len(result["expired"])
 
     if ndraft > 0:
-        flags.append(f"{ndraft} dispute draft(s) auto-created, review in Gmail")
+        flags.append(f"{ndraft} dispute draft payload(s) prepared for caller placement")
     elif nd > 0:
         flags.append(f"{nd} new dispute(s) tracked (run with "
-                     f"--auto-draft-disputes to create Gmail drafts)")
+                     f"--auto-draft-disputes to prepare draft payloads)")
     if nr > 0:
         amt = sum(d["amount"] for d in da.load_disputes()
                   if d["dispute_id"] in result["resolved"])
@@ -853,8 +853,8 @@ def render(digest):
             L.append(f"- Resolved this week: {dh['recently_resolved']} "
                      f"({money(dh.get('recently_resolved_amount', 0))})")
         if dd.get("n_drafts_created", 0) > 0:
-            L.append(f"- {dd['n_drafts_created']} draft(s) auto-created, "
-                     f"review in Gmail")
+            L.append(f"- {dd['n_drafts_created']} draft payload(s) prepared; "
+                     f"the caller owns placement")
         if dd.get("n_auto_resolved", 0) > 0:
             L.append(f"- {dd['n_auto_resolved']} auto-resolved "
                      f"(refund credit detected)")
@@ -905,7 +905,7 @@ def main():
                     help="receipts-only mode: bank-dependent sections show "
                          "'connect your bank' instead of requiring transactions")
     ap.add_argument("--auto-draft-disputes", action="store_true",
-                    help="generate Gmail drafts for actionable dispute findings")
+                    help="prepare draft payloads for actionable dispute findings")
     ap.add_argument("--dispute-status", action="store_true",
                     help="show open dispute status and exit")
     ap.add_argument("--dispute-threshold", type=float,

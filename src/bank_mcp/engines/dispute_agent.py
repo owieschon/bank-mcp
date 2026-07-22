@@ -6,8 +6,9 @@ Four capabilities:
 
   1. AUTO-DRAFT REFUND REQUESTS
      Takes flagged findings from reconciliation (discrepancies) and fee_fraud
-     (duplicates), generates polite refund request emails via Haiku, and
-     creates Gmail drafts via the MCP.  Only drafts — never sends automatically.
+     (duplicates) and prepares refund-request payloads, optionally using Haiku
+     for the prose. The caller decides whether and where to place each draft;
+     this module does not call Gmail or send messages.
 
   2. AUTO-DRAFT BANK DISPUTE LETTERS
      For unverified charges over a configurable threshold (default $25),
@@ -28,8 +29,8 @@ Four capabilities:
      Flags disputes with no response after 14 days.
 
 Privacy:
-  - LLM calls for email drafting send ONLY: merchant name, amount, date,
-    dispute reason.  NEVER account numbers, bank name, full transaction IDs.
+  - LLM calls for email drafting send only typed merchant, amount, date,
+    expected amount, and dispute reason fields. Free-form evidence stays local.
   - Bank dispute letter templates use [PLACEHOLDER] for sensitive fields.
   - disputes.json is stored locally, never transmitted.
 
@@ -39,8 +40,8 @@ ARCHITECTURE:
   - Uses llm_matcher._call_haiku() for LLM calls.
   - Graceful degradation: if no API key, generates template-based emails
     without Haiku narration.
-  - Draft creation returns content dicts; the caller (finance_agent or MCP
-    layer) handles actual Gmail MCP create_draft calls.
+  - Draft generation returns content dicts; the caller chooses whether and
+    where to place them. This module has no message-placement integration.
 """
 
 import datetime as dt
@@ -410,11 +411,11 @@ def dispute_summary(disputes=None, *, path=None):
 # ========================= EMAIL DRAFT GENERATION =========================
 
 def _generate_refund_body(merchant, amount, date, expected_amount, reason,
-                          evidence_summary, *, api_key=None):
+                          *, api_key=None):
     """Use Haiku to generate a polite, professional refund request body.
 
-    PRIVACY: Only merchant name, amount, date, expected amount, and reason
-    are sent.  Never account numbers, bank name, or transaction IDs.
+    PRIVACY: Only typed merchant, amount, date, expected amount, and reason
+    fields are sent. Free-form evidence never enters the model prompt.
 
     Returns (plain_text, html_body) tuple.  Falls back to template when no
     API key is available.
@@ -437,9 +438,6 @@ def _generate_refund_body(merchant, amount, date, expected_amount, reason,
             f"Reason: {reason}\n"
         )
         refund_ask = amount
-
-    if evidence_summary:
-        context += f"Evidence: {evidence_summary}\n"
 
     system = (
         "You are a professional customer service email writer. Write a polite "
@@ -615,7 +613,7 @@ def build_refund_draft(finding, *, api_key=None, contacts_path=None,
 
     Returns a draft dict:
       {to, subject, body, htmlBody, dispute_id, merchant, amount}
-    ready for Gmail MCP create_draft.
+    suitable for a caller-selected draft sink.
     """
     contacts_path = contacts_path or MERCHANT_CONTACTS_PATH
     disputes_path = disputes_path or DISPUTES_PATH
@@ -669,7 +667,7 @@ def build_refund_draft(finding, *, api_key=None, contacts_path=None,
 
     # Generate email content
     plain, html = _generate_refund_body(
-        merchant, amount, date, expected, reason, evidence_summary,
+        merchant, amount, date, expected, reason,
         api_key=api_key,
     )
 
@@ -690,7 +688,7 @@ def build_bank_dispute_draft(finding, *, bank_email=None, api_key=None,
                               disputes_path=None):
     """Build a bank dispute letter draft from an unverified charge.
 
-    Returns a draft dict ready for Gmail MCP create_draft.
+    Returns a draft dict suitable for a caller-selected draft sink.
     """
     bank_email = bank_email or DEFAULT_BANK_EMAIL
     disputes_path = disputes_path or DISPUTES_PATH
