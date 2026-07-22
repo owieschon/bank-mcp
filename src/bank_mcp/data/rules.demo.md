@@ -1,8 +1,8 @@
 # Savings Rules
 
-<!-- clean-docs:purpose -->
+<!-- sourcebound:purpose -->
 **Target amount:** $10,000 **Move date:** ~December 2026 **Baseline start:** 2026-01
-<!-- clean-docs:end purpose -->
+<!-- sourcebound:end purpose -->
 
 
 ## Budget Mode

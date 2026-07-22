@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">bank.mcp synthetic demo</title>
+  <desc id="desc">Synthetic transactions flow through deterministic integer-cents engines to a computed digest. Optional narration stays outside the computed-figure boundary.</desc>
+  <rect width="1200" height="500" rx="24" fill="#0b1020"/>
+  <text x="60" y="72" fill="#f8fafc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="30" font-weight="700">bank.mcp demo</text>
+  <text x="60" y="108" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">synthetic data · zero tokens · no network</text>
+
+  <rect x="60" y="152" width="270" height="210" rx="16" fill="#151d33" stroke="#334155"/>
+  <text x="84" y="190" fill="#7dd3fc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700">INPUT</text>
+  <text x="84" y="230" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">bundled transactions</text>
+  <text x="84" y="262" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">fixed anchor date</text>
+  <text x="84" y="294" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">seeded anomalies</text>
+  <text x="84" y="334" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">no personal data</text>
+
+  <path d="M350 257 H410" stroke="#64748b" stroke-width="4"/>
+  <path d="M398 247 L414 257 L398 267" fill="none" stroke="#64748b" stroke-width="4"/>
+
+  <rect x="430" y="152" width="340" height="210" rx="16" fill="#13251f" stroke="#22c55e"/>
+  <text x="454" y="190" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700">DETERMINISTIC CORE</text>
+  <text x="454" y="230" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">integer-cents authority</text>
+  <text x="454" y="262" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">idempotent ingestion</text>
+  <text x="454" y="294" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">independent recompute</text>
+  <text x="454" y="334" fill="#86efac" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">test suite</text>
+
+  <path d="M790 257 H850" stroke="#64748b" stroke-width="4"/>
+  <path d="M838 247 L854 257 L838 267" fill="none" stroke="#64748b" stroke-width="4"/>
+
+  <rect x="870" y="152" width="270" height="210" rx="16" fill="#251d37" stroke="#a78bfa"/>
+  <text x="894" y="190" fill="#c4b5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700">COMPUTED DIGEST</text>
+  <text x="894" y="230" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">forecast + pace</text>
+  <text x="894" y="262" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">fees + duplicates</text>
+  <text x="894" y="294" fill="#e2e8f0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">SQL analytics</text>
+  <text x="894" y="334" fill="#c4b5fd" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">model may narrate</text>
+
+  <text x="60" y="430" fill="#f8fafc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="21" font-weight="700">Model output does not overwrite computed figures.</text>
+  <text x="60" y="464" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">If the API key is missing or the model returns garbage, the computed result stands unchanged.</text>
+</svg>

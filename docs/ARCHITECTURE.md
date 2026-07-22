@@ -1,43 +1,32 @@
 # Architecture
 
-<!-- clean-docs:purpose -->
-A layered pipeline with one canonical accessor at the base and one orchestrator on top. Data flows in one direction; the dependency graph is acyclic.
-<!-- clean-docs:end purpose -->
-<!-- clean-docs:allow section-length reason="This section keeps one tightly coupled procedure or contract together so readers can verify it without crossing section boundaries" -->
+A layered pipeline with one canonical accessor at the base and one orchestrator on
+top. Data flows in one direction; the dependency graph is acyclic.
 
+```mermaid
+flowchart TB
+    accTitle: bank.mcp data flow
+    accDescr: Bank transports feed an idempotent SQLite store. Deterministic engines produce computed summaries and reports. Separate optional model branches narrate a summary, match merchant names, extract candidate receipt fields, propose a merchant contact, or draft refund prose.
+    A["Bank transport<br/>Plaid, subprocess, or file"] --> B["Ingest and sync"]
+    B --> C["SQLite store<br/>canonical fields"]
+    C --> D["Seven deterministic engines"]
+    D --> E["finance_agent.build_digest"]
+    E --> F["Digest and static report"]
+    E --> G["Optional narration<br/>summary only"]
+    G --> F
+    H["Merchant names"] --> I["Optional matching or contact proposal"]
+    J["Receipt email text"] --> K["Optional candidate field extraction"]
+    L["Bounded dispute facts"] --> M["Optional refund draft"]
+```
 
-```
-   bank (Plaid / bank-mcp)
-         │  pull
-         ▼
-   ┌──────────┐   upsert    ┌───────────────────────────┐
-   │ ingest/  │ ──────────► │ store/  SQLite (finance.db)│
-   │ sync     │             │  + canonical field layer   │
-   └──────────┘             └───────────────────────────┘
-                                   │ load (engine-shaped dicts)
-                                   ▼
-                            ┌──────────────┐
-                            │  engines/    │  deterministic cores, each returns
-                            │  (7 cores)   │  a compact summary dict — no raw rows
-                            └──────────────┘
-                                   │ summaries
-                                   ▼
-                            ┌──────────────┐
-                            │ finance_agent│  orchestrator: reconcile, run each
-                            │  (build_digest)│ core, assemble ONE digest
-                            └──────────────┘
-                              │            │
-                   summary    │            │  summary dict (never raw rows)
-                  ┌───────────▼──┐      ┌──▼─────────────────┐
-                  │ report/      │      │ LLM (Haiku)        │
-                  │ digest + site│◄─────│ narrate / match /  │
-                  └──────────────┘      │ extract — edges only│
-                                        └────────────────────┘
-```
+Diagram: A bank transport feeds the idempotent ingest path and SQLite store. Seven deterministic
+engines produce summaries for `finance_agent.build_digest`, which writes the report directly and
+may ask a model to narrate the computed summary. Separate optional paths use merchant names for
+matching or contact proposals, receipt email text for candidate field extraction, and bounded
+dispute facts for draft prose. None receives raw bank transaction rows or overwrites stored values
+or computed figures.
 
 ## Layers
-<!-- clean-docs:allow section-length reason="This section keeps one tightly coupled procedure or contract together so readers can verify it without crossing section boundaries" -->
-
 **`ingest/` — getting data in.**
 `safehttp.fetch()` is the single outbound-HTTP chokepoint (enforces HTTPS, bounds a
 timeout, blocks non-HTTPS redirects). `plaid_bridge` is the bank transport (a
@@ -66,8 +55,8 @@ Python). `tests/test_analytics.py` cross-checks each query against a Python reco
 `fee_fraud_scan` (fees + duplicate charges), `recurring` (recurring streams),
 `receipt_scanner` (reconciliation), `dispute_agent` (dispute tracking),
 `merchant_categorizer`. Each returns a compact summary dict (~1K tokens), never raw
-rows. `llm_matcher` is the only engine that calls the model (merchant matching /
-receipt extraction).
+rows. `llm_matcher` calls the model for merchant matching and receipt extraction;
+`dispute_agent` calls it for merchant-contact proposals and refund-draft prose.
 
 **`report/` — rendering and serving.**
 `delivery` holds the delivery primitives (`money()` / `fmt_date()` / `send_email()` /
@@ -97,12 +86,23 @@ more rows — no schema migration.
 
 ## The LLM boundary
 
-Only three things ever reach a prompt: a **compact summary dict** (for narration), a
-**merchant-name string** (for matching), or **receipt email text** (for extraction).
-Amounts, dates, ids, and account numbers paired with identity never do. The math is
-deterministic Python and unit-tested; a `--no-voice` run is correct at $0. This is
-enforced in spirit by the layering and checked by a test that walks the
-assembled digest and fails if a raw-row shape appears in it
-(`tests/test_finance_agent.py::TestNoRawRows`).
+Five bounded inputs can reach a prompt:
+
+1. A compact computed summary for narration.
+2. Merchant-name lists for matching.
+3. Receipt email text for candidate amount, merchant, and date extraction.
+4. One merchant name for a best-guess support address.
+5. Typed merchant, amount, date, expected amount, and reason fields for refund-draft prose.
+
+The current call sites pass no raw bank rows or dedicated account-number or transaction-ID fields.
+Free-form refund evidence stays in the local dispute ledger and never enters the model prompt.
+Receipt extraction can propose an amount, and draft generation receives an already computed
+amount, so neither output is described as computed truth. The deterministic report remains usable
+without a model; `--no-voice` disables narration, while draft and extraction paths have their own
+explicit triggers and fallbacks. `tests/test_finance_agent.py::TestNoRawRows` checks the narration
+payload. `tests/test_model_boundary_docs.py` pins callers of the two declared model transports,
+rejects recognized model clients or endpoint ownership outside those modules, and fails when the
+declared callers diverge from this documented inventory. That static architecture guard does not
+claim to detect an intentionally disguised network transport from arbitrary Python.
 
 See [DECISIONS.md](DECISIONS.md) for why the storage/analysis split is shaped this way.

@@ -1,154 +1,22 @@
-# Portfolio preparation — changes from the private original
+# Changes
 
-<!-- clean-docs:purpose -->
-This repo is a public work-sample copy of a private personal-finance project. This file records what changed and why, so the diff from the original is reviewable rather than mysterious. The behavior of the financial engines was **preserved throughout** — the test suite passed at every step (292 tests through the cleanup; 296 after the SQL analytics layer below added four).
-<!-- clean-docs:end purpose -->
-<!-- clean-docs:allow doc-length reason="This ordered record stays in one file so readers can trace decisions and changes without crossing chronology boundaries" -->
+## Unreleased
 
-
-## Provenance / git history
-
-This copy was seeded from the private repo with `git archive HEAD` — none of the
-original repo's commits are inherited. During preparation, early commits of *this* repo
-still carried personal comments in code (a name; locale-specific naming); the history
-was subsequently rewritten with `git filter-repo` to remove them and force-pushed. A
-scan of the full history (this repo and the original) found **no secrets, keys, tokens,
-or real-data snapshots ever committed** — the only personal content was identifying
-comments/strings, now removed from both the working tree and the git history.
-
-## 1. PII and secrets removed
-
-- Removed all personal identity from source: a real name and email (`delivery`,
-  `dispute_agent`), a real bank name, hardcoded Vercel org/project IDs and account
-  slug (`deploy.sh`), and real account balances (`build_site`, a test).
-- Removed **personal data encoded in logic**, not just in strings: a hardcoded
-  merchant-specific category special-case and a magic-number obligation-matching
-  branch, both keyed to the author's real transactions. Neither generalized; removing
-  them reverts to the generic behavior. (Noted because this is the one place PII
-  removal nudged behavior.)
-- Replaced real data files with synthetic templates under `examples/`
-  (`rules`, `obligations`, `receipts`, `plaid_items`, `connection_owners`), and tightened
-  `.gitignore` so the real filenames can never be committed.
-- Deleted a personal `docs/` folder (dated working audits containing legal/health/
-  family detail) and a personal deploy wrapper (`run_deploy.sh`, which also embedded a
-  token in a git-push URL). The launchd plist was genericized to a username-free template.
-
-## 2. De-personalized to a generic tool
-
-The project was built around one person's specific goal. That framing was generalized to
-a configurable **"savings goal"**:
-
-- Renamed the personal-goal summary-dict key → `goal` and `project_goal()`,
-  `monk_budget` → `discretionary_budget`, and the personal "Fund" branding → neutral
-  product naming; example figures genericized.
-- The static report's secondary-currency toggle was later **genericized** (§10): the
-  target currency/locale/PPP are config-driven (env `REPORT_SECONDARY_*`), defaulting to
-  USD-only so the artifact carries no baked locale, with all locale-specific naming
-  removed. See DECISIONS.
-
-## 3. Packaging and structure
-
-- Flat root (33 modules at top level, bare imports) → an installable
-  `src/bank_mcp/` package grouped by the data flow: `ingest / store / engines /
-  report` + a top-level orchestrator. Imports rewritten to absolute package paths.
-- Added `pyproject.toml` (PEP 621, **zero runtime dependencies**, a `bank-mcp`
-  console script, ruff config), moved tests into `tests/` with a `conftest.py` and a
-  synthetic fixture, added an MIT `LICENSE`, and a GitHub Actions CI workflow
-  (lint + tests on Python 3.10/3.11/3.12).
-
-## 4. Runs end-to-end on a clean clone
-
-- Added a synthetic data generator (`demo.py`) and a `bank-mcp demo` command, so the
-  whole pipeline runs with no bank credentials and no real data.
-- `test_finance_agent` previously loaded the gitignored real `transactions.json` and
-  failed on a fresh checkout; it now loads the committed synthetic fixture.
-- `build_site` now falls back to bundled example rules when no `rules.md` is present, so
-  the static-site build runs on a clean clone.
-
-## 5. Cleanup (no behavior change)
-
-- Removed unused imports and unused local variables across the codebase (verified by
-  `ruff`); the suite stayed green, confirming the removals were dead.
-- Corrected stale docstrings that described a long-finished storage migration as still
-  "in progress" / "not yet wired" (the SQLite store is the live read+write path).
-
-## 6. Bug found and fixed (flagged)
-
-`budget_scorer.render_scorecard` referenced an **undefined `ICON` dict → a `NameError`**
-whenever the standalone `budget_scorer` CLI scored a rule. It is **not** on the live
-digest path (the demo and site go through `finance_agent`, which never calls it), which
-is why it went unnoticed. Fixed with the obvious one-liner —
-`ICON = {"on track": "✅", "drifting": "⚠️", "slipped": "🔻"}` — the same icons already
-used literally one line above. This is the only intentional logic change in the cleanup;
-called out here rather than slipped in silently.
-
-## 7. Flagged in the first pass, then resolved
-
-The first cleanup pass deliberately deferred three items; the hardening pass (§9) and a
-follow-up pass then closed all of them:
-
-- The **dead email renderer** (`render_email_html` / `_build_email_portion`, ~420 LOC) —
-  **removed** (§9).
-- The **duplicated transfer vocabulary** — **unified** into `subscription_creep` (§9).
-  (The two recurrence detectors are kept distinct on purpose — see `docs/DECISIONS.md`.)
-- **`llm_matcher._call_haiku`** bypassing the SSRF wrapper — **fixed**: it now routes
-  through `safehttp`, and no raw `urlopen` remains anywhere in the suite.
-
-## 8. Added a SQL analytics layer
-
-The descriptive reporting rollups are now expressed in SQL, both because it is the
-natural tool for set-based analytics over a relational store, and to show SQL
-competency. `store/queries.sql` holds three readable, commented
-CTE queries using window functions — monthly cash flow with a running total
-(`SUM() OVER`) and month-over-month delta (`LAG()`), category breakdown as a share of
-spend (ratio-to-total window), and top merchants ranked (`RANK()`). `store/analytics.py`
-runs them and `bank-mcp analytics` prints them. `tests/test_analytics.py` cross-checks
-every query result against an independent Python recomputation so the SQL and the
-engines can never silently diverge. The algorithmic forecasting/cadence math was left in
-Python — SQL would be the wrong tool for it. (See `docs/DECISIONS.md` §3.)
-
-## 9. Hardening pass (addressing a senior-engineer review)
-
-- **Money → exact integer cents.** The `transactions.amount` column and the SQL
-  analytics now use integer cents (exact aggregation, no float drift); `money.py` is the
-  single rounding (half-up) and formatting authority that `delivery.money()` delegates to.
-  Scope is honest: exact at the storage/aggregation boundary; engine digest math stays
-  float-rounded-to-cent (see `docs/DECISIONS.md`).
-- **Removed the dead email-render cluster** (`select_hero` / `_build_email_portion` /
-  `render_email_html`, ~420 LOC) — no live caller; `digest_templates.py` 2487 → 2065 lines.
-- **Added a real MCP server** (`bank-mcp-server`) — pure-stdlib JSON-RPC over stdio
-  exposing the engines as tools, so the "mcp" in the name is real and the zero-dependency
-  property is kept.
-- **Unified the transfer/P2P vocabulary** into `subscription_creep` (the engines kept
-  drifting copies); documented why the two recurring detectors intentionally differ.
-- **Trimmed speculative schema** — dropped the unused `envelopes` table and the
-  always-NULL `category_human` column.
-- **mypy gate over the whole package.** CI runs `mypy` across all of `src/bank_mcp`
-  (default strictness — real type errors, clean); `money.py`, `store/analytics.py`, and
-  `mcp_server.py` are fully annotated, and richer annotations spread from there.
-- **Split the oversized renderer.** `digest_templates.py` (2487 lines) → 1178, with the
-  static CSS/SVG in `_report_styles.py` and the date/money/severity formatters in
-  `_report_format.py`. Public render API unchanged.
-- **Closed the SSRF gap.** `llm_matcher._call_haiku` now routes through the `safehttp`
-  wrapper like the rest of the suite; no raw `urlopen` remains anywhere.
-
-## 10. Independent-review polish
-
-After an independent cold review (graded A−, no blockers), closed its fix list:
-- Fixed stale docs (a duplicated ARCHITECTURE sentence; a dropped `category_human`
-  column still described); deleted the unused `fx_rates` table.
-- Made the SSRF guard real (blocks private/link-local/loopback/reserved IP literals incl.
-  the 169.254.169.254 metadata endpoint; pins `allowed_hosts` at the Anthropic call
-  sites) and rewrote its docstring to state the guarantee honestly.
-- `bank-mcp --help` prints usage to stdout (exit 0); CI matrix adds Python 3.13.
-- Added integration-layer tests (snapshot transport, multi-Item config, formatters).
-- Split the section builders out of `digest_templates.py` (1178 → 272 lines) into
-  `_report_sections.py`; removed a decorative CLI emoji.
+- Store and aggregate money as exact integer cents.
+- Make ingestion idempotent and reconcile pending transactions with posted records.
+- Recompute analytics independently in SQL.
+- Keep forecasting and anomaly detection deterministic.
+- Bound optional model inputs and keep their outputs outside computed financial truth.
+- Provide a synthetic, keyless CLI and test demo.
 
 ## Verification
 
-`pip install -e ".[dev]"` succeeds; `ruff check src tests` and `mypy` are clean;
-**339 tests pass** (≥70% core coverage, gated in CI) via the installed package;
-`bank-mcp demo`, `bank-mcp analytics`, `bank-mcp-server`, and `build_site` all produce
-output from synthetic data. PII/secret sweeps over the whole tree (and full git
-history) come back clean.
+```bash
+pip install -e ".[dev]"
+ruff check src tests
+mypy src/bank_mcp
+pytest -q
+bank-mcp demo
+```
+
+Supported Python versions and required quality gates live in the README and CI.
